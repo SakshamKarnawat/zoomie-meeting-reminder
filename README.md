@@ -18,7 +18,7 @@ EventKit reads calendars already linked in **System Settings > Internet Accounts
 
 ## Qualifying events
 
-An event is reminded when it has a title, is not all-day, the user has not declined it, and its calendar is enabled in Zoomie settings.
+An event is reminded when it has a title, is not all-day, the user has not declined it, its calendar is enabled in Zoomie settings, and the title is not on the ignore list (whole-word match; default `busy, blocked, focus, hold, ooo`).
 
 ## Build and run
 
@@ -79,7 +79,7 @@ The Dock/app icon is the OpenMoji dog face (U+1F436), resized with `scripts/gene
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for scheduling, calendar filtering, and the banner window.
+See [docs/architecture.md](docs/architecture.md) for scheduling, calendar filtering, calendar sync, updates, and the banner window.
 
 ## Constraints
 

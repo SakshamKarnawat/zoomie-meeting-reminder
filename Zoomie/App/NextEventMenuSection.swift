@@ -3,6 +3,7 @@ import SwiftUI
 struct NextEventMenuSection: View {
     let load: () -> UpcomingEvent?
     let join: (URL) -> Void
+    var refreshToken: Int
     @State private var event: UpcomingEvent?
 
     var body: some View {
@@ -16,8 +17,13 @@ struct NextEventMenuSection: View {
                 Text("No upcoming events")
             }
         }
-        .onAppear {
-            event = load()
+        .onAppear(perform: reload)
+        .onChange(of: refreshToken) {
+            reload()
         }
+    }
+
+    private func reload() {
+        event = load()
     }
 }

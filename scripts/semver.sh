@@ -7,6 +7,8 @@
 #   scripts/semver.sh test           self-checks
 #
 # feat → minor, type! / BREAKING CHANGE: → major, everything else → patch.
+# notes uses each commit subject + body. A feat/fix body of `- ` bullets
+# replaces that commit's subject so one commit can list several changes.
 set -euo pipefail
 
 semver_normalize() {

@@ -6,6 +6,8 @@ import SwiftUI
 final class CalendarService {
     let store = EKEventStore()
     var calendars: [CalendarDescriptor] = []
+    private(set) var snapshotID = 0
+    private var isReloading = false
 
     var hasAccess: Bool {
         EKEventStore.authorizationStatus(for: .event) == .fullAccess
@@ -35,8 +37,14 @@ final class CalendarService {
         }
     }
 
-    func refreshSources() {
+    func reload() {
+        guard !isReloading else { return }
+        isReloading = true
+        store.reset()
         store.refreshSourcesIfNecessary()
+        refreshCalendars()
+        snapshotID += 1
+        isReloading = false
     }
 
     func refreshCalendars() {

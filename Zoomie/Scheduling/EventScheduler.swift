@@ -225,11 +225,11 @@ final class EventScheduler {
     private func registerStoreChangeHandler() {
         let observer = NotificationCenter.default.addObserver(
             forName: .EKEventStoreChanged,
-            object: calendarService.store,
+            object: nil,
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.calendarService.refreshCalendars()
+                self?.calendarService.reload()
                 self?.reschedule()
             }
         }

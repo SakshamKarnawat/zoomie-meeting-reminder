@@ -6,7 +6,7 @@ Deployment target is macOS 14 (Sonoma); later macOS versions are supported. `Set
 
 ## Banner window
 
-`BannerController` builds an AppKit `NSPanel` itself and hosts `BannerView` in an `NSHostingView`. This is not a SwiftUI `WindowGroup` window.
+`BannerController` builds an AppKit `NSPanel` itself and hosts `BannerView` in an `NSHostingController`. This is not a SwiftUI `WindowGroup` window.
 
 The panel is borderless, transparent, click-through (`ignoresMouseEvents = true`), level `.screenSaver`, and uses collection behavior `[.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]` so it can appear over other spaces and fullscreen apps without taking the key window or the Dock.
 
@@ -48,7 +48,7 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 `NSWorkspace.didWakeNotification` invalidates the current timer and runs the same reschedule path as launch. `Timer` does not fire during sleep; a pre-sleep fire date would be stale after wake.
 
-`CalendarSync` is a second, repeating timer (`SettingsStore.calendarSyncInterval`, default 6 hours: 4 / 6 / 12 / 24). Each tick and each wake calls `EKEventStore.refreshSourcesIfNecessary()`, then `refreshCalendars()` and `EventScheduler.reschedule()`. Changing the interval restarts that timer. **Sync Now** (Settings next to the interval picker, and the menu item) calls the same `syncNow()` path without resetting the interval timer. This is a background pull of accounts already in Calendar.app — not a substitute for `EKEventStoreChanged`, which still reschedules immediately.
+`CalendarSync` is a second, repeating timer (`SettingsStore.calendarSyncInterval`, default 6 hours: 4 / 6 / 12 / 24). Each tick, each wake, and **Sync Now** (Settings next to the interval picker, and the menu item) call `CalendarService.reload()`: `EKEventStore.reset()` (drops the in-process event cache — the same reason quit/reopen used to be the only way to see Calendar.app edits), then `refreshSourcesIfNecessary()`, then `refreshCalendars()`. `EventScheduler.reschedule()` runs after that. Changing the interval restarts the timer without skipping that reload. `EKEventStoreChanged` is observed with no store-object filter and uses the same `reload()` + reschedule path; `reload()` is re-entrancy-guarded so a reset does not loop. The menu next-event row reloads when `CalendarService.snapshotID` changes or after the menu Sync item.
 
 ## Calendar filtering
 
@@ -58,7 +58,7 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 ## Updates
 
-`AppUpdateService` is `@Observable` `@MainActor`. **Check for Updates** GETs the GitHub `latest` release (User-Agent `Zoomie/<marketing>`) and `AppUpdateCheck` compares `Zoomie.zip` `updated_at` to the running binary’s modification date. **Update Zoomie** (menu, About window, Settings About section) starts `/bin/bash -lc` with the same `curl | bash` as `install.sh`. The Settings About section and About window share `UpdateActionsView`.
+`AppUpdateService` is `@Observable` `@MainActor`. **Check for Updates…** GETs the GitHub `latest` release (User-Agent `Zoomie/<marketing>`) and `AppUpdateCheck` compares `Zoomie.zip` `updated_at` to the running binary’s modification date, with 60 seconds of slack so a just-installed build is not flagged. **Update Zoomie** (menu, About window, Settings About section) starts `/bin/bash -lc` with the same `curl | bash` as `install.sh`. The Settings About section and About window share `UpdateActionsView`.
 
 ## Install
 
@@ -66,7 +66,7 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 `.github/workflows/release.yml` builds that unsigned arm64 zip on `macos-26` (Xcode 26, same project format as this repo) on every push to `main` and on manual workflow dispatch. `macos-14` ships Xcode 15.4, which cannot open objectVersion 77.
 
-Versioning is semantic. `scripts/semver.sh` (one file) prints the next `X.Y.Z` from the latest ancestor `v*` tag (or `1.0.0` if none) and Conventional Commits since that tag: `feat` → minor, `type!` / `BREAKING CHANGE:` → major, everything else including `fix` and unprefixed messages → patch. `scripts/semver.sh notes` groups those commits into Features / Fixes / Other. `scripts/semver.sh changelog X.Y.Z` prepends that section to `CHANGELOG.md`. `scripts/semver.sh test` is the self-check; `scripts/semver.sh build X.Y.Z` is `major*10000 + minor*100 + patch`. Every push therefore increments. The workflow stamps those into `xcodebuild` as `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`, prepends `CHANGELOG.md` and commits `chore(release): vX.Y.Z [skip ci]` so it does not bump again, then `gh release create vX.Y.Z --notes-file` `--latest`. Tags are the source of truth. Local `project.pbxproj` stays at `1.0.0` / `10000` until CI overrides it for a release build.
+Versioning is semantic. `scripts/semver.sh` (one file) prints the next `X.Y.Z` from the latest ancestor `v*` tag (or `1.0.0` if none) and Conventional Commits since that tag: `feat` → minor, `type!` / `BREAKING CHANGE:` → major, everything else including `fix` and unprefixed messages → patch. `scripts/semver.sh notes` reads each commit subject plus body and groups them into Features / Fixes / Other. A `feat:` (or `fix:`) body made of `- ` bullets replaces that commit’s subject in the notes, so one commit can list several changes. `chore(release):` lines are skipped. `scripts/semver.sh changelog X.Y.Z` prepends that section to `CHANGELOG.md`. `scripts/semver.sh test` is the self-check; `scripts/semver.sh build X.Y.Z` is `major*10000 + minor*100 + patch`. Every push therefore increments. The workflow stamps those into `xcodebuild` as `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`, prepends `CHANGELOG.md` and commits `chore(release): vX.Y.Z [skip ci]` so it does not bump again, then `gh release create vX.Y.Z --notes-file` `--latest`. Tags are the source of truth. Local `project.pbxproj` stays at `1.0.0` / `10000` until CI overrides it for a release build. After that job finishes, `git pull --ff-only` and `git fetch --tags` so local `CHANGELOG.md` and the new `v*` tag match GitHub.
 
 ## Launch at login
 

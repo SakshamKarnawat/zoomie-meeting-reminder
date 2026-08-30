@@ -53,8 +53,7 @@ final class CalendarSync {
     }
 
     private func refreshNow() {
-        calendarService.refreshSources()
-        calendarService.refreshCalendars()
+        calendarService.reload()
         onRefreshed()
     }
 

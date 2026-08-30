@@ -13,15 +13,15 @@ Skip the ask when nothing is dirty, or the turn was only Q&A.
 
 ## What to ask
 
-Propose one Conventional Commit subject (and a one-line body only if the why is not obvious). State the **semver bump this message will cause** after push:
+Propose one Conventional Commit subject (and a one-line body only if the why is not obvious). State the **semver bump this message will cause** after push. Current version is the latest fetched `v*` tag (`git fetch --tags`, then `git describe --tags --abbrev=0 --match 'v[0-9]*'`, or `scripts/semver.sh` after a pull). Do **not** read `MARKETING_VERSION` in `project.pbxproj` — that file stays `1.0.0` / `10000` locally. An unfetched clone will lie.
 
-- `fix:` / `docs:` / `chore:` / unprefixed → **patch** (`1.0.0` → `1.0.1`)
-- `feat:` → **minor** (`1.0.0` → `1.1.0`)
-- `feat!:` / `fix!:` or `BREAKING CHANGE:` footer → **major** (`1.0.0` → `2.0.0`)
+- `fix:` / `docs:` / `chore:` / unprefixed → **patch** (`1.3.0` → `1.3.1`)
+- `feat:` → **minor** (`1.3.0` → `1.4.0`)
+- `feat!:` / `fix!:` or `BREAKING CHANGE:` footer → **major** (`1.3.0` → `2.0.0`)
 
 If the session mixed a feature and a fix, use `feat:` (highest bump). Example ask:
 
-> Commit and push to `main` as `fix: keep settings window in front` (patch → `1.0.1`)? Say **yes** to ship, or keep going.
+> Commit and push to `main` as `fix: keep settings window in front` (patch → `1.3.1`)? Say **yes** to ship, or keep going.
 
 ## If they say yes
 
@@ -29,6 +29,7 @@ If the session mixed a feature and a fix, use `feat:` (highest bump). Example as
 2. Do **not** hand-edit `MARKETING_VERSION` / tags / `CHANGELOG.md`. Versioning and the changelog section are `scripts/semver.sh` + `.github/workflows/release.yml` on push to `main`.
 3. Push `HEAD` to `origin` with `-u` if needed. That publish job tags `vX.Y.Z` and uploads `Zoomie.zip`.
 4. Confirm the remote and the expected tag.
+5. After the release job finishes, `git pull --ff-only origin main` and `git fetch --tags` so local `CHANGELOG.md` and the new tag match CI.
 
 ## If they say no
 
