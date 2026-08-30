@@ -8,10 +8,11 @@ struct BannerView: View {
     let font: Font
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(alignment: .center, spacing: 0) {
             RibbonLabel(message: message, theme: theme, font: font)
             TowingRope(color: theme.rope)
-            CharacterView(choice: character, customImage: customImage)
+                .zIndex(-1)
+            CharacterSprite(choice: character, customImage: customImage)
         }
         .shadow(color: .black.opacity(0.28), radius: 8, x: 2, y: 5)
         .padding(Design.bannerShadowPadding)
@@ -24,7 +25,7 @@ struct BannerView: View {
 #Preview {
     BannerView(
         message: "Call with Jack in 5 minutes",
-        character: .duck,
+        character: .cat,
         customImage: nil,
         theme: .classic,
         font: BannerFontChoice.rounded.font

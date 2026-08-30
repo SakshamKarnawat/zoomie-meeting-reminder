@@ -7,7 +7,7 @@ struct BannerSnapshotTests {
     @Test func ribbonUnitRendersAtReadableSize() {
         let view = BannerView(
             message: "Call with Jack in 5 minutes",
-            character: .duck,
+            character: .cat,
             customImage: nil,
             theme: .classic,
             font: BannerFontChoice.rounded.font

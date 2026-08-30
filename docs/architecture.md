@@ -10,13 +10,13 @@ Deployment target is macOS 14 (Sonoma); later macOS versions are supported. `Set
 
 The panel is borderless, transparent, click-through (`ignoresMouseEvents = true`), level `.screenSaver`, and uses collection behavior `[.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]` so it can appear over other spaces and fullscreen apps without taking the key window or the Dock.
 
-The window is sized to the banner content (character + text), not the full screen. It sits near the top of `NSScreen.main` (menu-bar offset via `Design.bannerTopMargin`).
+The window is sized to the banner content (character + ribbon), not the full screen. Vertical placement is `BannerPlacement.originY(visibleFrame:bannerHeight:fromTop:)` using `SettingsStore.resolvedFromTop` (0 = top, 1 = bottom, with `BannerPlacement.edgeInset`). Settings preview calls the same `offsetFromTop` and scales it — no second formula.
 
 ## Marquee
 
 The **window** moves, not an inner SwiftUI slide. `BannerAnimator` runs one 120 Hz `Timer` on the main `.common` run loop and only writes `setFrameOrigin` each tick — it does not rebuild the SwiftUI view. (A window-tied `CADisplayLink` was dropped: the panel starts fully off-screen, so that link never fired and Test Now played the sound with no visible banner.) Speed is `Design.pixelsPerSecond` (220). Duration is `(screenWidth + bannerWidth) / speed`. `BannerMotion.progress` eases the first and last 10% (`Design.easePortion`); the middle stretch is linear. Start `x = screen.minX - bannerWidth`, end `x = screen.maxX`. Hosted in `NSHostingController` sized with `sizeThatFits`, not a forced 2400-pt frame. Then the panel is ordered out. Only one banner runs at a time (`isShowing`).
 
-The hosted view is one fixed layout: ribbon (rounded body + V-notch on the trailing/left edge) + rope + character on the leading/right edge, with a drop shadow on the whole group. Character emoji is larger than the banner type. `--preview-banner` on launch fires `previewBanner()` after a short delay.
+The hosted view is one fixed layout: fluttering ribbon (V-notch on the trailing/left edge; `RibbonShape.phase` driven by `TimelineView` at 30 Hz, ~2.4 pt sine on the edges) + overlapping rope (`Design.ropeOverlap`) + Cat/Corgi vector silhouette (or a static custom image) on the leading/right edge, with a drop shadow on the whole group. Cat/Corgi bob and wag via the same `TimelineView` clock; custom uploads do not animate. `--preview-banner` on launch fires `previewBanner()` after a short delay.
 
 On fire, `NSSound(named: "Glass")` plays (falls back to Ping, then `NSSound.beep()`).
 

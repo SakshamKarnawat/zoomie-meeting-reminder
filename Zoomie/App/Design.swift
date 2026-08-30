@@ -7,8 +7,12 @@ enum Design {
     static let ribbonNotch: Double = 16
     static let characterPointSize: Double = 56
     static let customCharacterSide: Double = 56
-    static let ropeLength: Double = 22
+    static let ropeLength: Double = 26
     static let ropeThickness: Double = 2
+    static let ropeOverlap: Double = 5
+    static let flutterAmplitude: Double = 2.4
+    static let flutterSpeed: Double = 3.1
+    static let characterBob: Double = 2.0
     static let bannerShadowPadding: Double = 20
     static let bannerTopMargin: Double = 52
     static let bannerMinWidth: Double = 280

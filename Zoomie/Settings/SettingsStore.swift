@@ -14,6 +14,8 @@ final class SettingsStore {
         static let font = "font"
         static let disabledCalendarIDs = "disabledCalendarIDs"
         static let launchAtLogin = "launchAtLogin"
+        static let bannerPosition = "bannerPosition"
+        static let bannerFromTop = "bannerFromTop"
     }
 
     private let defaults: UserDefaults
@@ -63,6 +65,18 @@ final class SettingsStore {
         }
     }
 
+    var bannerPosition: BannerPositionPreset {
+        didSet { defaults.set(bannerPosition.rawValue, forKey: Keys.bannerPosition) }
+    }
+
+    var bannerFromTop: Double {
+        didSet { defaults.set(bannerFromTop, forKey: Keys.bannerFromTop) }
+    }
+
+    var resolvedFromTop: Double {
+        bannerPosition.fromTop ?? min(max(bannerFromTop, 0), 1)
+    }
+
     var launchAtLogin: Bool {
         didSet {
             defaults.set(launchAtLogin, forKey: Keys.launchAtLogin)
@@ -79,7 +93,7 @@ final class SettingsStore {
         self.defaults = defaults
 
         let storedCharacter = defaults.string(forKey: Keys.character) ?? ""
-        character = CharacterChoice(rawValue: storedCharacter) ?? .duck
+        character = CharacterChoice(rawValue: storedCharacter) ?? .cat
 
         customImageBookmark = defaults.data(forKey: Keys.customImageBookmark)
         customImagePath = defaults.string(forKey: Keys.customImagePath)
@@ -100,6 +114,10 @@ final class SettingsStore {
 
         let storedDisabled = defaults.stringArray(forKey: Keys.disabledCalendarIDs) ?? []
         disabledCalendarIDs = Set(storedDisabled)
+
+        let storedPosition = defaults.string(forKey: Keys.bannerPosition) ?? ""
+        bannerPosition = BannerPositionPreset(rawValue: storedPosition) ?? .top
+        bannerFromTop = defaults.object(forKey: Keys.bannerFromTop) as? Double ?? 0
 
         launchAtLogin = LoginItemService.isEnabled
         defaults.set(launchAtLogin, forKey: Keys.launchAtLogin)
@@ -127,7 +145,7 @@ final class SettingsStore {
         customImageBookmark = nil
         customImagePath = nil
         if character == .custom {
-            character = .duck
+            character = .cat
         }
     }
 

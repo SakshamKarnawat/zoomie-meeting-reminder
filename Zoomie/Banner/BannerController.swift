@@ -71,9 +71,13 @@ final class BannerController {
         host.view.frame = NSRect(x: 0, y: 0, width: bannerWidth, height: bannerHeight)
 
         let screenFrame = screen.visibleFrame
-        let y = screenFrame.maxY - bannerHeight - 8
-        let startX = screenFrame.minX - bannerWidth
-        let endX = screenFrame.maxX
+        let y = BannerPlacement.originY(
+            visibleFrame: screenFrame,
+            bannerHeight: bannerHeight,
+            fromTop: settings.resolvedFromTop
+        )
+        let startX = BannerPlacement.startX(visibleFrame: screenFrame, bannerWidth: bannerWidth)
+        let endX = BannerPlacement.endX(visibleFrame: screenFrame)
         let distance = endX - startX
         let duration = BannerMotion.duration(distance: distance)
 

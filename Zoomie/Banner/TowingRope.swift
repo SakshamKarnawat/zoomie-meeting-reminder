@@ -7,6 +7,8 @@ struct TowingRope: View {
         Capsule()
             .fill(color)
             .frame(width: Design.ropeLength, height: Design.ropeThickness)
+            .padding(.horizontal, -Design.ropeOverlap)
+            .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
 }

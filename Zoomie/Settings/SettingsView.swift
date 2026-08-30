@@ -15,6 +15,10 @@ struct SettingsView: View {
 
             CharacterPickerSection(settings: settings)
             ThemePickerSection(settings: settings)
+            BannerPositionSection(
+                settings: settings,
+                screenSize: NSScreen.main?.visibleFrame.size ?? CGSize(width: 1440, height: 900)
+            )
 
             Section("Timing") {
                 Picker("Lead time", selection: $settings.leadTime) {
