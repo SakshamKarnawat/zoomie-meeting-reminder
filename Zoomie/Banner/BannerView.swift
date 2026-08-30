@@ -8,19 +8,13 @@ struct BannerView: View {
     let font: Font
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 0) {
+            RibbonLabel(message: message, theme: theme, font: font)
+            TowingRope(color: theme.rope)
             CharacterView(choice: character, customImage: customImage)
-            Text(message)
-                .font(font)
-                .foregroundStyle(theme.foreground)
-                .lineLimit(1)
         }
-        .padding(.horizontal, Design.bannerHorizontalPadding)
-        .padding(.vertical, Design.bannerVerticalPadding)
-        .background {
-            BannerBackground(theme: theme)
-        }
-        .clipShape(.rect(cornerRadius: Design.bannerCornerRadius))
+        .shadow(color: .black.opacity(0.28), radius: 8, x: 2, y: 5)
+        .padding(Design.bannerShadowPadding)
         .fixedSize()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(message)
@@ -29,11 +23,12 @@ struct BannerView: View {
 
 #Preview {
     BannerView(
-        message: "Standup in 5 min",
+        message: "Call with Jack in 5 minutes",
         character: .duck,
         customImage: nil,
-        theme: .sunset,
+        theme: .classic,
         font: BannerFontChoice.rounded.font
     )
     .padding()
+    .background(Color(red: 0.78, green: 0.90, blue: 0.98))
 }

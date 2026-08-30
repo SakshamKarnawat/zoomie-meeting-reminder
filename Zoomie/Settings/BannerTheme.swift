@@ -28,4 +28,8 @@ enum BannerTheme: String, CaseIterable, Identifiable {
         case .bubblegum: Color(red: 0.42, green: 0.10, blue: 0.22)
         }
     }
+
+    var rope: Color {
+        foreground.opacity(0.7)
+    }
 }

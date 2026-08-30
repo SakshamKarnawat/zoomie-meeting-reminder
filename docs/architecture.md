@@ -14,7 +14,9 @@ The window is sized to the banner content (character + text), not the full scree
 
 ## Marquee
 
-The **window** moves, not an inner SwiftUI slide. Start frame `x = screen.minX - bannerWidth` (fully off the left). End frame `x = screen.maxX` (fully off the right). `NSAnimationContext.runAnimationGroup` animates `panel.animator().setFrame` over `Design.animationDuration` (4.5s), linear. Then the panel is ordered out. Only one banner runs at a time (`isShowing`).
+The **window** moves, not an inner SwiftUI slide. `BannerAnimator` runs one 120 Hz `Timer` on the main `.common` run loop and only writes `setFrameOrigin` each tick — it does not rebuild the SwiftUI view. (A window-tied `CADisplayLink` was dropped: the panel starts fully off-screen, so that link never fired and Test Now played the sound with no visible banner.) Speed is `Design.pixelsPerSecond` (220). Duration is `(screenWidth + bannerWidth) / speed`. `BannerMotion.progress` eases the first and last 10% (`Design.easePortion`); the middle stretch is linear. Start `x = screen.minX - bannerWidth`, end `x = screen.maxX`. Hosted in `NSHostingController` sized with `sizeThatFits`, not a forced 2400-pt frame. Then the panel is ordered out. Only one banner runs at a time (`isShowing`).
+
+The hosted view is one fixed layout: ribbon (rounded body + V-notch on the trailing/left edge) + rope + character on the leading/right edge, with a drop shadow on the whole group. Character emoji is larger than the banner type. `--preview-banner` on launch fires `previewBanner()` after a short delay.
 
 On fire, `NSSound(named: "Glass")` plays (falls back to Ping, then `NSSound.beep()`).
 
@@ -28,7 +30,7 @@ On launch, after a fire, after a scheduling-relevant settings change, on `EKEven
 
 A fire is `event.startDate - leadTimeMinutes`, plus `event.startDate` when “Also ping at meeting start” is on. Already-shown fires are remembered in-memory (`deliveredKeys`) so catch-up does not repeat in the same process.
 
-If two fire times fall within `Design.clusterWindow` (5 seconds), extras wait in `queue` and start when the current banner finishes. Two banners never overlap.
+If two fire times fall within `Design.clusterWindow` (10 seconds — about one traverse at 220 px/s on a typical display), extras wait in `queue` and start when the current banner finishes. Two banners never overlap.
 
 If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set for 24 hours so the scheduler does not go silent forever.
 

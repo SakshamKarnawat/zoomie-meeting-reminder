@@ -21,11 +21,11 @@ enum BannerFontChoice: String, CaseIterable, Identifiable {
 
     var font: Font {
         switch self {
-        case .systemDefault: .system(.title3, design: .default)
-        case .rounded: .system(.title3, design: .rounded)
-        case .serif: .system(.title3, design: .serif)
-        case .monospaced: .system(.title3, design: .monospaced)
-        case .condensed: .system(.title3, design: .default).width(.condensed)
+        case .systemDefault: .system(.title2, design: .default).bold()
+        case .rounded: .system(.title2, design: .rounded).bold()
+        case .serif: .system(.title2, design: .serif).bold()
+        case .monospaced: .system(.title2, design: .monospaced).bold()
+        case .condensed: .system(.title2, design: .default).width(.condensed).bold()
         }
     }
 

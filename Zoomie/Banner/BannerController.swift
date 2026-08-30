@@ -13,6 +13,7 @@ final class BannerController {
     private var isShowing = false
     private var onFinished: (() -> Void)?
     private var pending: PendingShow?
+    private let animator = BannerAnimator()
 
     var isPresenting: Bool { isShowing }
 
@@ -58,29 +59,25 @@ final class BannerController {
             font: settings.font.font
         )
 
-        let hosting = NSHostingView(rootView: root)
-        hosting.wantsLayer = true
-        hosting.layer?.backgroundColor = NSColor.clear.cgColor
-
-        let fitting = hosting.fittingSize
+        let host = NSHostingController(rootView: root)
+        host.view.wantsLayer = true
+        host.view.layer?.backgroundColor = NSColor.clear.cgColor
+        var fitting = host.sizeThatFits(in: NSSize(width: 4000, height: 400))
+        if fitting.width < 10 || fitting.height < 10 {
+            fitting = host.view.fittingSize
+        }
         let bannerWidth = max(fitting.width, Design.bannerMinWidth)
         let bannerHeight = max(fitting.height, Design.bannerMinHeight)
-        hosting.frame = NSRect(x: 0, y: 0, width: bannerWidth, height: bannerHeight)
+        host.view.frame = NSRect(x: 0, y: 0, width: bannerWidth, height: bannerHeight)
 
-        let screenFrame = screen.frame
-        let y = screenFrame.maxY - bannerHeight - Design.bannerTopMargin
-        let startFrame = NSRect(
-            x: screenFrame.minX - bannerWidth,
-            y: y,
-            width: bannerWidth,
-            height: bannerHeight
-        )
-        let endFrame = NSRect(
-            x: screenFrame.maxX,
-            y: y,
-            width: bannerWidth,
-            height: bannerHeight
-        )
+        let screenFrame = screen.visibleFrame
+        let y = screenFrame.maxY - bannerHeight - 8
+        let startX = screenFrame.minX - bannerWidth
+        let endX = screenFrame.maxX
+        let distance = endX - startX
+        let duration = BannerMotion.duration(distance: distance)
+
+        let startFrame = NSRect(x: startX, y: y, width: bannerWidth, height: bannerHeight)
 
         let panel = NSPanel(
             contentRect: startFrame,
@@ -100,25 +97,25 @@ final class BannerController {
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.animationBehavior = .none
-        panel.contentView = hosting
+        panel.contentViewController = host
 
         window = panel
         panel.setFrame(startFrame, display: true)
         panel.orderFrontRegardless()
 
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = Design.animationDuration
-            context.timingFunction = CAMediaTimingFunction(name: .linear)
-            context.allowsImplicitAnimation = true
-            panel.animator().setFrame(endFrame, display: true)
-        }, completionHandler: { [weak self] in
-            Task { @MainActor in
-                self?.finishPresentation()
-            }
-        })
+        animator.start(
+            window: panel,
+            fromX: startX,
+            toX: endX,
+            y: y,
+            duration: duration
+        ) { [weak self] in
+            self?.finishPresentation()
+        }
     }
 
     private func finishPresentation() {
+        animator.stop()
         window?.orderOut(nil)
         window = nil
         isShowing = false
