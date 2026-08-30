@@ -42,6 +42,10 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 `EventQualifying` is the pure filter: non-empty title, not all-day, user has not declined (current-user attendee status `.declined`), calendar not in `disabledCalendarIDs`. New calendars are on by default because we store the disabled set, not the enabled set.
 
+## Install
+
+`install.sh` downloads `Zoomie.zip` from the GitHub `latest` release, copies `Zoomie.app` to `/Applications` (or `~/Applications` if needed), runs `xattr -rd com.apple.quarantine`, and opens the app. `.github/workflows/release.yml` builds that unsigned arm64 zip on every push to `main` (and on manual workflow dispatch).
+
 ## Launch at login
 
 `LoginItemService` calls `SMAppService.mainApp.register()` / `unregister()`. The settings toggle and the menu toggle share `SettingsStore.launchAtLogin`. Most reliable after the app lives in `/Applications`.

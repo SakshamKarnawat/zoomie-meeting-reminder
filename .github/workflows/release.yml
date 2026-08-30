@@ -1,0 +1,42 @@
+name: Build and publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build unsigned app
+        run: |
+          xcodebuild -scheme Zoomie -project Zoomie.xcodeproj \
+            -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Zip app
+        run: |
+          ditto -c -k --keepParent \
+            build/DerivedData/Build/Products/Release/Zoomie.app \
+            Zoomie.zip
+
+      - name: Publish latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest Zoomie.zip --clobber
+          else
+            gh release create latest Zoomie.zip \
+              --title "Zoomie" \
+              --notes "Unsigned Apple Silicon build."
+          fi

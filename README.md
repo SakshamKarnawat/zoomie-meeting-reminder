@@ -4,6 +4,16 @@ macOS menu bar app. Before a qualifying calendar event, a character tows a messa
 
 Personal use only. Apple Silicon, macOS 14 (Sonoma) and later. No App Store listing. Unsigned build.
 
+## Install
+
+Apple Silicon, macOS 14+.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SakshamKarnawat/zoomie-meeting-reminder/main/install.sh | bash
+```
+
+Menu bar bird → **Settings…**. Allow Calendar access if prompted. If macOS blocks the app: **System Settings → Privacy & Security → Open Anyway**.
+
 EventKit reads calendars already linked in **System Settings > Internet Accounts** (iCloud and Google included). No OAuth or CalDAV in this app.
 
 ## Qualifying events
@@ -24,16 +34,15 @@ The app lands under Xcode’s DerivedData `Build/Products/Release/Zoomie.app`. C
 
 In Xcode: open `Zoomie.xcodeproj`, select the Zoomie scheme, Run. First launch asks for Calendar access.
 
-## Install an unsigned copy (friends and family)
+## Manual unsigned copy
 
-1. Copy `Zoomie.app` to `/Applications`.
-2. Clear Gatekeeper quarantine (required for an unsigned build):
+If you already have `Zoomie.app`: copy it to `/Applications`, then:
 
 ```bash
 xattr -rd com.apple.quarantine "/Applications/Zoomie.app"
 ```
 
-3. Open Zoomie. Grant Calendar access when prompted. If access was denied earlier: **System Settings > Privacy & Security > Calendars**, enable Zoomie, then reopen the app.
+Open Zoomie. Grant Calendar access when prompted. If access was denied earlier: **System Settings > Privacy & Security > Calendars**, enable Zoomie, then reopen the app.
 
 ## Menu and settings
 
