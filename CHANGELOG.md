@@ -2,6 +2,14 @@
 
 What changed in each Zoomie release. GitHub Releases use the same notes.
 
+## [1.3.2] - 2026-08-30
+
+### Other
+
+- explain Apple Calendar is the source
+- Zoomie only reads calendars already in Calendar.app
+- Settings section with Open Internet Accounts
+
 ## [1.3.1] - 2026-08-30
 
 ### Fixes
