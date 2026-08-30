@@ -26,7 +26,7 @@ If the session mixed a feature and a fix, use `feat:` (highest bump). Example as
 ## If they say yes
 
 1. Follow the repo git commit protocol (status, diff, log, HEREDOC message, no `--no-verify`, no amend unless they asked).
-2. Do **not** hand-edit `MARKETING_VERSION` / tags. Versioning is `scripts/semver.sh` + `.github/workflows/release.yml` on push to `main`.
+2. Do **not** hand-edit `MARKETING_VERSION` / tags / `CHANGELOG.md`. Versioning and the changelog section are `scripts/semver.sh` + `.github/workflows/release.yml` on push to `main`.
 3. Push `HEAD` to `origin` with `-u` if needed. That publish job tags `vX.Y.Z` and uploads `Zoomie.zip`.
 4. Confirm the remote and the expected tag.
 

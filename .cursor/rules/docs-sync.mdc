@@ -11,6 +11,7 @@ When you change code in this repo, update every doc that describes that code in 
 
 - `README.md` — user-facing behavior, build/run, install/`xattr`, settings, constraints
 - `docs/architecture.md` — scheduling, calendar filtering, banner window, marquee, wake handling, launch-at-login
+- `CHANGELOG.md` — release history; CI prepends each `vX.Y.Z` from `scripts/semver.sh notes`. Do not invent entries for unreleased work unless the user is about to ship.
 
 If a new user-facing behavior or architectural mechanism appears, add it to the matching doc. If a behavior is removed or renamed, delete or rewrite the stale claim.
 

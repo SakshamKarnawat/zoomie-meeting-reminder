@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# One script for Zoomie semver.
-#   scripts/semver.sh          print next X.Y.Z from tags + commits
-#   scripts/semver.sh build V  print numeric CURRENT_PROJECT_VERSION
-#   scripts/semver.sh test     run self-checks
+# One script for Zoomie semver + changelog.
+#   scripts/semver.sh                print next X.Y.Z
+#   scripts/semver.sh build V        numeric CURRENT_PROJECT_VERSION
+#   scripts/semver.sh notes          markdown notes since last tag
+#   scripts/semver.sh changelog V F  prepend V to changelog file F
+#   scripts/semver.sh test           self-checks
 #
 # feat → minor, type! / BREAKING CHANGE: → major, everything else → patch.
 set -euo pipefail
@@ -66,32 +68,132 @@ semver_build_number() {
     echo $((major * 10000 + minor * 100 + patch))
 }
 
+semver_range() {
+    if git describe --tags --exact-match --match 'v[0-9]*' HEAD >/dev/null 2>&1; then
+        return
+    fi
+    local last_tag before
+    last_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)"
+    if [[ -n "$last_tag" ]]; then
+        echo "${last_tag}..HEAD"
+        return
+    fi
+    before="${BEFORE_SHA:-}"
+    if [[ -n "$before" && "$before" != "0000000000000000000000000000000000000000" ]] \
+        && git cat-file -e "${before}^{commit}" 2>/dev/null; then
+        echo "${before}..HEAD"
+    fi
+}
+
+semver_commit_log() {
+    local range
+    range="$(semver_range)"
+    if [[ -n "$range" ]]; then
+        git log --format='%s' "$range"
+    fi
+}
+
 semver_next() {
     if git describe --tags --exact-match --match 'v[0-9]*' HEAD >/dev/null 2>&1; then
         semver_normalize "$(git describe --tags --exact-match --match 'v[0-9]*' HEAD)"
         return
     fi
 
-    local last_tag current="1.0.0" range="" before log kind
+    local last_tag current="1.0.0" range log
     last_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)"
     if [[ -n "$last_tag" ]]; then
         current="$(semver_normalize "$last_tag")"
-        range="${last_tag}..HEAD"
-    else
-        before="${BEFORE_SHA:-}"
-        if [[ -n "$before" && "$before" != "0000000000000000000000000000000000000000" ]] \
-            && git cat-file -e "${before}^{commit}" 2>/dev/null; then
-            range="${before}..HEAD"
-        fi
     fi
-
+    range="$(semver_range)"
     if [[ -n "$range" ]]; then
         log="$(git log --format='%s%n%b' "$range")"
     else
         log=""
     fi
-    kind="$(semver_kind "$log")"
-    semver_bump "$current" "$kind"
+    semver_bump "$current" "$(semver_kind "$log")"
+}
+
+semver_plain_subject() {
+    local line="$1"
+    if [[ "$line" =~ ^[A-Za-z]+(\([A-Za-z0-9._-]+\))?!:[[:space:]]+(.*)$ ]]; then
+        echo "${BASH_REMATCH[2]}"
+        return
+    fi
+    if [[ "$line" =~ ^[A-Za-z]+(\([A-Za-z0-9._-]+\))?:[[:space:]]+(.*)$ ]]; then
+        echo "${BASH_REMATCH[2]}"
+        return
+    fi
+    echo "$line"
+}
+
+semver_format_notes() {
+    local log="$1"
+    local features="" fixes="" others="" line lower text
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        lower="$(printf '%s' "$line" | tr '[:upper:]' '[:lower:]')"
+        if [[ "$lower" =~ ^chore\(release\): ]] || [[ "$lower" =~ ^breaking[[:space:]]change: ]]; then
+            continue
+        fi
+        text="$(semver_plain_subject "$line")"
+        if [[ "$lower" =~ ^feat(\([a-z0-9._-]+\))?!: ]] || [[ "$lower" =~ ^feat(\([a-z0-9._-]+\))?: ]]; then
+            features+="- ${text}"$'\n'
+        elif [[ "$lower" =~ ^fix(\([a-z0-9._-]+\))?!: ]] || [[ "$lower" =~ ^fix(\([a-z0-9._-]+\))?: ]]; then
+            fixes+="- ${text}"$'\n'
+        else
+            others+="- ${text}"$'\n'
+        fi
+    done <<< "$log"
+
+    local out=""
+    if [[ -n "$features" ]]; then
+        out+="### Features"$'\n\n'"${features}"$'\n'
+    fi
+    if [[ -n "$fixes" ]]; then
+        out+="### Fixes"$'\n\n'"${fixes}"$'\n'
+    fi
+    if [[ -n "$others" ]]; then
+        out+="### Other"$'\n\n'"${others}"$'\n'
+    fi
+    if [[ -z "$out" ]]; then
+        out="- Maintenance release."$'\n'
+    fi
+    printf '%s' "$out" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}'
+    echo
+}
+
+semver_notes() {
+    semver_format_notes "$(semver_commit_log)"
+}
+
+semver_changelog() {
+    local version="$1"
+    local file="${2:-CHANGELOG.md}"
+    local date notes tmp
+    if [[ -z "$version" ]]; then
+        echo "usage: $0 changelog X.Y.Z [CHANGELOG.md]" >&2
+        exit 1
+    fi
+    if [[ -f "$file" ]] && grep -qF "## [${version}]" "$file"; then
+        return 0
+    fi
+    date="$(date -u +%Y-%m-%d)"
+    notes="$(semver_notes)"
+    tmp="$(mktemp)"
+    {
+        echo "# Changelog"
+        echo
+        echo "What changed in each Zoomie release. GitHub Releases use the same notes."
+        echo
+        echo "## [${version}] - ${date}"
+        echo
+        printf '%s\n' "$notes"
+        if [[ -f "$file" ]]; then
+            echo
+            awk '/^## \[/{found=1} found{print}' "$file"
+        fi
+    } > "$tmp"
+    mv "$tmp" "$file"
 }
 
 semver_test() {
@@ -127,6 +229,17 @@ semver_test() {
     assert_eq "$(semver_build_number "1.2.3")" "10203" "build number"
     assert_eq "$(semver_build_number "2.0.0")" "20000" "major build number"
 
+    assert_eq "$(semver_plain_subject "feat: version releases")" "version releases" "plain feat"
+    assert_eq "$(semver_plain_subject "fix(banner): glow")" "glow" "plain scoped"
+    assert_eq "$(semver_plain_subject "first commit")" "first commit" "plain raw"
+
+    local notes
+    notes="$(semver_format_notes $'feat: new banner\nfix: refocus settings\ndocs: readme\nchore(release): v1.0.1\n')"
+    assert_eq "$(printf '%s' "$notes" | grep -c 'new banner')" "1" "notes has feat"
+    assert_eq "$(printf '%s' "$notes" | grep -c 'refocus settings')" "1" "notes has fix"
+    assert_eq "$(printf '%s' "$notes" | grep -c 'readme')" "1" "notes has other"
+    assert_eq "$(printf '%s' "$notes" | grep -c 'chore(release)')" "0" "notes skips release chore"
+
     if [[ "$fail" -ne 0 ]]; then
         echo "semver tests failed" >&2
         exit 1
@@ -136,6 +249,10 @@ semver_test() {
 
 case "${1:-next}" in
     next) semver_next ;;
+    notes) semver_notes ;;
+    changelog)
+        semver_changelog "${2:-}" "${3:-CHANGELOG.md}"
+        ;;
     build)
         if [[ -z "${2:-}" ]]; then
             echo "usage: $0 build X.Y.Z" >&2
@@ -145,7 +262,7 @@ case "${1:-next}" in
         ;;
     test) semver_test ;;
     *)
-        echo "usage: $0 [next|build X.Y.Z|test]" >&2
+        echo "usage: $0 [next|notes|changelog X.Y.Z [file]|build X.Y.Z|test]" >&2
         exit 1
         ;;
 esac
