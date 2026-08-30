@@ -2,6 +2,15 @@
 
 What changed in each Zoomie release. GitHub Releases use the same notes.
 
+## [1.3.0] - 2026-08-30
+
+### Features
+
+- show next upcoming event and Join in the menu
+- mute junk calendar titles (busy, blocked, focus, hold, ooo)
+- check GitHub and install Zoomie updates
+- refresh calendars on an interval, plus Sync Now
+
 ## [1.2.0] - 2026-08-30
 
 ### Features
