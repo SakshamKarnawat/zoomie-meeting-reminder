@@ -8,8 +8,13 @@ struct ZoomieApp: App {
         MenuBarExtra {
             MenuBarMenu(
                 settings: appDelegate.runtime.settings,
+                nextEvent: appDelegate.runtime.nextUpcomingEvent,
+                joinEvent: appDelegate.runtime.joinMeeting,
                 openSettings: appDelegate.runtime.openSettings,
                 previewBanner: appDelegate.runtime.previewBanner,
+                syncCalendars: appDelegate.runtime.syncCalendars,
+                openAbout: appDelegate.runtime.openAbout,
+                updateApp: appDelegate.runtime.updateApp,
                 quit: quitApp
             )
         } label: {

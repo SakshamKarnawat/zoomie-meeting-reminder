@@ -4,6 +4,8 @@ struct SettingsView: View {
     @Bindable var settings: SettingsStore
     var calendarService: CalendarService
     let previewBanner: () -> Void
+    let syncCalendars: () -> Void
+    var updates: AppUpdateService
 
     var body: some View {
         Form {
@@ -32,6 +34,8 @@ struct SettingsView: View {
                 Toggle("Also ping at meeting start", isOn: $settings.pingAtStart)
             }
 
+            CalendarSyncSection(settings: settings, syncNow: syncCalendars)
+
             Section("Message") {
                 TextField("Template", text: $settings.messageTemplate, axis: .vertical)
                     .lineLimit(2...)
@@ -50,6 +54,7 @@ struct SettingsView: View {
             }
 
             CalendarListSection(settings: settings, calendars: calendarService.calendars)
+            IgnoreTitlesSection(settings: settings)
 
             Section("General") {
                 Toggle("Launch at Login", isOn: $settings.launchAtLogin)
@@ -58,6 +63,8 @@ struct SettingsView: View {
                         .foregroundStyle(.red)
                 }
             }
+
+            AboutSection(updates: updates)
         }
         .formStyle(.grouped)
         .frame(minWidth: 480, minHeight: 560)
@@ -68,5 +75,11 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView(settings: SettingsStore(), calendarService: CalendarService(), previewBanner: {})
+    SettingsView(
+        settings: SettingsStore(),
+        calendarService: CalendarService(),
+        previewBanner: {},
+        syncCalendars: {},
+        updates: AppUpdateService()
+    )
 }

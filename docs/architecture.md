@@ -1,6 +1,6 @@
 # Zoomie architecture
 
-Feature folders under `Zoomie/`: App, Settings, Calendar, Banner, Scheduling. One Swift type per file. Shared UI numbers live in `Design`. Settings persist through `SettingsStore` → `UserDefaults`.
+Feature folders under `Zoomie/`: App, Settings, Calendar, Banner, Scheduling, Update. One Swift type per file. Shared UI numbers live in `Design`. Settings persist through `SettingsStore` → `UserDefaults`.
 
 Deployment target is macOS 14 (Sonoma); later macOS versions are supported. `SettingsStore` and `CalendarService` are `@Observable` `@MainActor` classes. Settings views take them as `@Bindable`. `AppRuntime` and `EventScheduler` are plain `@MainActor` classes. UserDefaults writes live in `SettingsStore` property `didSet` — not `@AppStorage` inside the observable class.
 
@@ -14,11 +14,13 @@ The window is sized to the banner content (character + ribbon), not the full scr
 
 ## Settings window
 
-`AppRuntime` keeps one `SettingsWindowController`. There is no SwiftUI `Settings` scene and no `SettingsLink` — those do not refocus an already-open window while Zoomie is an accessory app (`LSUIElement`). Menu **Settings…** calls `openSettings()` → `showSettings()`: create the `NSWindow` (hosting `SettingsView`) on first click; on later clicks call `NSApp.setActivationPolicy(.regular)`, `NSApp.activate(ignoringOtherApps: true)`, and `makeKeyAndOrderFront` on that same instance. Close orders the window out (`isReleasedWhenClosed = false`, `windowShouldClose` returns false) and restores `.accessory`. Two settings windows are never created.
+`AppRuntime` keeps one `SettingsWindowController` and one `AboutWindowController`. There is no SwiftUI `Settings` scene and no `SettingsLink` — those do not refocus an already-open window while Zoomie is an accessory app (`LSUIElement`). Menu **Settings…** / **About Zoomie…** create the window on first click; later clicks use `AppActivation.bringToFront` (`setActivationPolicy(.regular)`, `activate(ignoringOtherApps: true)`, `makeKeyAndOrderFront`) on that same instance. Close orders the window out (`isReleasedWhenClosed = false`, `windowShouldClose` returns false) and `AppActivation.restoreAccessoryIfNeeded` only if no other titled window is visible. Two settings windows and two about windows are never created.
 
 ## Menu bar and app icon
 
 `MenuBarExtra` uses `MenuBarIcon.templateImage`: SF Symbol `pawprint.fill` as an `NSImage` with `isTemplate = true`, sized to 18 pt so it matches other menu bar icons and follows light/dark tint. The Dock/Finder icon is `AppIcon.appiconset` (OpenMoji color `1F436`, 16–1024 px). `scripts/generate-icons.sh` downloads the 618×618 color source if needed and resizes it with `sips` — it does not generate the tray icon.
+
+The menu’s first block is `NextEventMenuSection`: on appear it asks `CalendarService.nextUpcomingEvent` (same `EventQualifying` filter as the scheduler, including muted titles) and shows `UpcomingEventLabel` plus **Join** when `MeetingLink` found an http(s) URL on the event, notes, or location (Zoom / Meet / Teams / FaceTime / Webex preferred). **Sync Calendars Now** is the same `CalendarSync.syncNow()` as Settings. **Update Zoomie** calls `AppUpdateService.installLatest`, which runs `install.sh` from GitHub.
 
 ## Marquee
 
@@ -32,7 +34,7 @@ On fire, `NSSound(named: "Glass")` plays (falls back to Ping, then `NSSound.beep
 
 ## Scheduling
 
-`EventScheduler` keeps **one** `Timer` on the main run loop. No poll loop.
+`EventScheduler` keeps **one** `Timer` on the main run loop for the next banner fire. No poll loop for fires.
 
 On launch, after a fire, after a scheduling-relevant settings change, on `EKEventStoreChanged`, and on wake: query EventKit for the next qualifying fires, then either fire immediately (catch-up) or `Timer(fire:interval:repeats:)` for that exact date.
 
@@ -46,11 +48,17 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 `NSWorkspace.didWakeNotification` invalidates the current timer and runs the same reschedule path as launch. `Timer` does not fire during sleep; a pre-sleep fire date would be stale after wake.
 
+`CalendarSync` is a second, repeating timer (`SettingsStore.calendarSyncInterval`, default 6 hours: 4 / 6 / 12 / 24). Each tick and each wake calls `EKEventStore.refreshSourcesIfNecessary()`, then `refreshCalendars()` and `EventScheduler.reschedule()`. Changing the interval restarts that timer. **Sync Now** (Settings next to the interval picker, and the menu item) calls the same `syncNow()` path without resetting the interval timer. This is a background pull of accounts already in Calendar.app — not a substitute for `EKEventStoreChanged`, which still reschedules immediately.
+
 ## Calendar filtering
 
 `CalendarService` uses EventKit only (`requestFullAccessToEvents`). Denied access shows one alert pointing at **System Settings > Privacy & Security > Calendars**, then the app exits. No retry loop.
 
-`EventQualifying` is the pure filter: non-empty title, not all-day, user has not declined (current-user attendee status `.declined`), calendar not in `disabledCalendarIDs`. New calendars are on by default because we store the disabled set, not the enabled set.
+`EventQualifying` is the pure filter: non-empty title, not all-day, user has not declined (current-user attendee status `.declined`), calendar not in `disabledCalendarIDs`, title not matched by `MutedTitle` against `SettingsStore.mutedTitleTokens` (comma-separated, default `busy, blocked, focus, hold, ooo`; single tokens are whole-word so “Busy” mutes and “Business review” does not). New calendars are on by default because we store the disabled set, not the enabled set.
+
+## Updates
+
+`AppUpdateService` is `@Observable` `@MainActor`. **Check for Updates** GETs the GitHub `latest` release (User-Agent `Zoomie/<marketing>`) and `AppUpdateCheck` compares `Zoomie.zip` `updated_at` to the running binary’s modification date. **Update Zoomie** (menu, About window, Settings About section) starts `/bin/bash -lc` with the same `curl | bash` as `install.sh`. The Settings About section and About window share `UpdateActionsView`.
 
 ## Install
 

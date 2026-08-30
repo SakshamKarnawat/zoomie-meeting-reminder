@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 @MainActor
@@ -6,11 +7,16 @@ final class AppRuntime {
     let calendarService: CalendarService
     let banner: BannerController
     let scheduler: EventScheduler
+    let updates: AppUpdateService
+    let calendarSync: CalendarSync
     private(set) lazy var settingsWindow = SettingsWindowController(
         settings: settings,
         calendarService: calendarService,
-        previewBanner: { [unowned self] in self.previewBanner() }
+        previewBanner: { [unowned self] in self.previewBanner() },
+        syncCalendars: { [unowned self] in self.syncCalendars() },
+        updates: updates
     )
+    private(set) lazy var aboutWindow = AboutWindowController(updates: updates)
 
     private var didStart = false
 
@@ -21,13 +27,24 @@ final class AppRuntime {
         self.settings = settings
         self.calendarService = calendarService
         self.banner = banner
+        self.updates = AppUpdateService()
         self.scheduler = EventScheduler(
             calendarService: calendarService,
             settings: settings,
             banner: banner
         )
+        self.calendarSync = CalendarSync(
+            calendarService: calendarService,
+            settings: settings,
+            onRefreshed: { [scheduler] in
+                scheduler.reschedule()
+            }
+        )
         settings.onSchedulingRelevantChange = { [scheduler] in
             scheduler.reschedule()
+        }
+        settings.onCalendarSyncIntervalChange = { [calendarSync] in
+            calendarSync.restart()
         }
     }
 
@@ -42,6 +59,7 @@ final class AppRuntime {
         }
 
         scheduler.start()
+        calendarSync.start()
     }
 
     func previewBanner() {
@@ -56,5 +74,28 @@ final class AppRuntime {
 
     func openSettings() {
         settingsWindow.showSettings()
+    }
+
+    func openAbout() {
+        aboutWindow.showAbout()
+    }
+
+    func nextUpcomingEvent() -> UpcomingEvent? {
+        calendarService.nextUpcomingEvent(
+            disabledCalendarIDs: settings.disabledCalendarIDs,
+            mutedTitleTokens: settings.mutedTitleTokens
+        )
+    }
+
+    func joinMeeting(_ url: URL) {
+        NSWorkspace.shared.open(url)
+    }
+
+    func updateApp() {
+        updates.installLatest()
+    }
+
+    func syncCalendars() {
+        calendarSync.syncNow()
     }
 }

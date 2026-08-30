@@ -50,7 +50,7 @@ Open Zoomie. Grant Calendar access when prompted. If access was denied earlier: 
 
 ## Menu and settings
 
-Menu bar item (SF Symbol `pawprint.fill`, template-tinted for light/dark): **Settings…**, **Test Now**, **Launch at Login**, **Quit**. **Settings…** brings the existing settings window forward if it is already open — it does not spawn a second one.
+Menu bar item (SF Symbol `pawprint.fill`, template-tinted for light/dark): next upcoming event (and **Join** when the event has a meeting URL), **Settings…**, **Test Now**, **Sync Calendars Now**, **Launch at Login**, **About Zoomie…**, **Update Zoomie**, **Quit**. **Settings…** brings the existing settings window forward if it is already open — it does not spawn a second one. **About Zoomie…** is the same: one window, brought forward. **Update Zoomie** re-runs `install.sh` from GitHub.
 
 **Test Now** flies the banner immediately with the current character, theme, font, and message template (`{event}` becomes `Zoomie preview`, `{mins}` is the selected lead time). No calendar event needed. If a banner is already crossing the screen, Test Now does nothing.
 
@@ -60,10 +60,13 @@ Settings (UserDefaults, no extra config file):
 - Banner position: Top, Upper-center, or custom % from top, with a scaled screen preview
 - Banner theme: Classic, Midnight, Sunset, Mint, Bubblegum
 - Lead time: 5 or 10 minutes, optional ping at meeting start
+- Calendar refresh: 4 / 6 / 12 / 24 hours (default 6), plus **Sync Now** (same action as the menu item). EventKit still updates as soon as the store changes.
 - Message template, default `{event} in {mins} min`
 - Banner font: System, Rounded, Serif, Mono, Condensed
 - Calendar checklist (all on by default)
+- Ignore titles: comma-separated whole-word list (default `busy, blocked, focus, hold, ooo`)
 - Launch at Login via `SMAppService.mainApp`
+- About: version, check GitHub for a newer zip, Update Zoomie
 - Test Now (same action as the menu item)
 
 ## Inspired by
@@ -80,4 +83,4 @@ See [docs/architecture.md](docs/architecture.md) for scheduling, calendar filter
 
 ## Constraints
 
-No paywall, no telemetry, no network besides EventKit’s local calendar store. arm64 only. Requires macOS 14 or later.
+No paywall, no telemetry. Network is EventKit’s local calendar store plus a user-started GitHub check/install for updates. arm64 only. Requires macOS 14 or later.

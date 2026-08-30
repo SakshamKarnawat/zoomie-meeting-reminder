@@ -8,7 +8,9 @@ struct SettingsWindowControllerTests {
         let controller = SettingsWindowController(
             settings: SettingsStore(),
             calendarService: CalendarService(),
-            previewBanner: {}
+            previewBanner: {},
+            syncCalendars: {},
+            updates: AppUpdateService()
         )
         controller.showSettings()
         let first = controller.window

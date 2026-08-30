@@ -56,6 +56,29 @@ struct EventQualifyingTests {
         )
     }
 
+    @Test func rejectsMutedTitle() {
+        #expect(
+            EventQualifying.isQualifying(
+                title: "Busy",
+                isAllDay: false,
+                userDeclined: false,
+                calendarIdentifier: "home",
+                disabledCalendarIDs: [],
+                mutedTitleTokens: ["busy", "focus"]
+            ) == false
+        )
+        #expect(
+            EventQualifying.isQualifying(
+                title: "Business review",
+                isAllDay: false,
+                userDeclined: false,
+                calendarIdentifier: "home",
+                disabledCalendarIDs: [],
+                mutedTitleTokens: ["busy"]
+            )
+        )
+    }
+
     @Test func acceptsTimedEnabledEvent() {
         #expect(
             EventQualifying.isQualifying(

@@ -35,6 +35,10 @@ final class CalendarService {
         }
     }
 
+    func refreshSources() {
+        store.refreshSourcesIfNecessary()
+    }
+
     func refreshCalendars() {
         calendars = store.calendars(for: .event).map { calendar in
             CalendarDescriptor(
@@ -55,6 +59,39 @@ final class CalendarService {
 
         let predicate = store.predicateForEvents(withStart: now, end: end, calendars: enabledCalendars)
         return store.events(matching: predicate)
+    }
+
+    func nextUpcomingEvent(
+        disabledCalendarIDs: Set<String>,
+        mutedTitleTokens: [String],
+        now: Date = .now
+    ) -> UpcomingEvent? {
+        let events = upcomingEvents(disabledCalendarIDs: disabledCalendarIDs, from: now)
+            .sorted { lhs, rhs in
+                (lhs.startDate ?? .distantFuture) < (rhs.startDate ?? .distantFuture)
+            }
+        for event in events {
+            guard EventQualifying.isQualifying(
+                title: event.title,
+                isAllDay: event.isAllDay,
+                userDeclined: userDeclined(event),
+                calendarIdentifier: event.calendar.calendarIdentifier,
+                disabledCalendarIDs: disabledCalendarIDs,
+                mutedTitleTokens: mutedTitleTokens
+            ) else { continue }
+            guard let title = event.title, let start = event.startDate else { continue }
+            if let end = event.endDate, end <= now { continue }
+            return UpcomingEvent(
+                title: title,
+                startDate: start,
+                joinURL: MeetingLink.url(
+                    eventURL: event.url,
+                    notes: event.notes,
+                    location: event.location
+                )
+            )
+        }
+        return nil
     }
 
     func userDeclined(_ event: EKEvent) -> Bool {

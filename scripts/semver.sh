@@ -89,7 +89,7 @@ semver_commit_log() {
     local range
     range="$(semver_range)"
     if [[ -n "$range" ]]; then
-        git log --format='%s' "$range"
+        git log --format='%s%n%b' "$range"
     fi
 }
 
@@ -126,24 +126,63 @@ semver_plain_subject() {
     echo "$line"
 }
 
+semver_is_conventional() {
+    local lower="$1"
+    [[ "$lower" =~ ^[a-z]+(\([a-z0-9._-]+\))?!: ]] \
+        || [[ "$lower" =~ ^[a-z]+(\([a-z0-9._-]+\))?: ]]
+}
+
 semver_format_notes() {
     local log="$1"
     local features="" fixes="" others="" line lower text
+    local feat_subject="" feat_bullets="" last=""
+
+    flush_feat() {
+        if [[ -n "$feat_bullets" ]]; then
+            features+="$feat_bullets"
+        elif [[ -n "$feat_subject" ]]; then
+            features+="- ${feat_subject}"$'\n'
+        fi
+        feat_subject=""
+        feat_bullets=""
+        last=""
+    }
+
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue
         lower="$(printf '%s' "$line" | tr '[:upper:]' '[:lower:]')"
         if [[ "$lower" =~ ^chore\(release\): ]] || [[ "$lower" =~ ^breaking[[:space:]]change: ]]; then
             continue
         fi
+        if [[ "$line" =~ ^-[[:space:]]+ ]]; then
+            if [[ "$last" == "feat" ]]; then
+                feat_bullets+="${line}"$'\n'
+            elif [[ "$last" == "fix" ]]; then
+                fixes+="${line}"$'\n'
+            elif [[ "$last" == "other" ]]; then
+                others+="${line}"$'\n'
+            fi
+            continue
+        fi
+        if ! semver_is_conventional "$lower"; then
+            continue
+        fi
         text="$(semver_plain_subject "$line")"
         if [[ "$lower" =~ ^feat(\([a-z0-9._-]+\))?!: ]] || [[ "$lower" =~ ^feat(\([a-z0-9._-]+\))?: ]]; then
-            features+="- ${text}"$'\n'
+            flush_feat
+            feat_subject="$text"
+            last="feat"
         elif [[ "$lower" =~ ^fix(\([a-z0-9._-]+\))?!: ]] || [[ "$lower" =~ ^fix(\([a-z0-9._-]+\))?: ]]; then
+            flush_feat
             fixes+="- ${text}"$'\n'
+            last="fix"
         else
+            flush_feat
             others+="- ${text}"$'\n'
+            last="other"
         fi
     done <<< "$log"
+    flush_feat
 
     local out=""
     if [[ -n "$features" ]]; then
@@ -239,6 +278,11 @@ semver_test() {
     assert_eq "$(printf '%s' "$notes" | grep -c 'refocus settings')" "1" "notes has fix"
     assert_eq "$(printf '%s' "$notes" | grep -c 'readme')" "1" "notes has other"
     assert_eq "$(printf '%s' "$notes" | grep -c 'chore(release)')" "0" "notes skips release chore"
+
+    notes="$(semver_format_notes $'feat: umbrella\n\n- alpha\n- beta\n')"
+    assert_eq "$(printf '%s' "$notes" | grep -c 'alpha')" "1" "notes uses feat body bullets"
+    assert_eq "$(printf '%s' "$notes" | grep -c 'beta')" "1" "notes keeps each body bullet"
+    assert_eq "$(printf '%s' "$notes" | grep -c 'umbrella')" "0" "notes drops umbrella when bullets exist"
 
     if [[ "$fail" -ne 0 ]]; then
         echo "semver tests failed" >&2

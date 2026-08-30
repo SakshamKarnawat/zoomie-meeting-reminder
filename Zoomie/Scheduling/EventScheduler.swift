@@ -84,7 +84,8 @@ final class EventScheduler {
             isAllDay: event.isAllDay,
             userDeclined: declined,
             calendarIdentifier: calendarID,
-            disabledCalendarIDs: settings.disabledCalendarIDs
+            disabledCalendarIDs: settings.disabledCalendarIDs,
+            mutedTitleTokens: settings.mutedTitleTokens
         ) else {
             return []
         }

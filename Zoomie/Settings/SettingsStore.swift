@@ -18,6 +18,8 @@ final class SettingsStore {
         static let bannerPosition = "bannerPosition"
         static let bannerFromTop = "bannerFromTop"
         static let characterColor = "characterColor"
+        static let mutedTitleList = "mutedTitleList"
+        static let calendarSyncInterval = "calendarSyncIntervalHours"
     }
 
     private let defaults: UserDefaults
@@ -71,6 +73,24 @@ final class SettingsStore {
         }
     }
 
+    var mutedTitleList: String {
+        didSet {
+            defaults.set(mutedTitleList, forKey: Keys.mutedTitleList)
+            onSchedulingRelevantChange?()
+        }
+    }
+
+    var mutedTitleTokens: [String] {
+        MutedTitle.tokens(from: mutedTitleList)
+    }
+
+    var calendarSyncInterval: CalendarSyncInterval {
+        didSet {
+            defaults.set(calendarSyncInterval.rawValue, forKey: Keys.calendarSyncInterval)
+            onCalendarSyncIntervalChange?()
+        }
+    }
+
     var bannerPosition: BannerPositionPreset {
         didSet { defaults.set(bannerPosition.rawValue, forKey: Keys.bannerPosition) }
     }
@@ -94,6 +114,7 @@ final class SettingsStore {
     var loginItemError: String?
     private var isApplyingLoginItem = false
     var onSchedulingRelevantChange: (() -> Void)?
+    var onCalendarSyncIntervalChange: (() -> Void)?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -121,6 +142,15 @@ final class SettingsStore {
 
         let storedDisabled = defaults.stringArray(forKey: Keys.disabledCalendarIDs) ?? []
         disabledCalendarIDs = Set(storedDisabled)
+
+        if defaults.object(forKey: Keys.mutedTitleList) == nil {
+            mutedTitleList = MutedTitle.defaultList
+        } else {
+            mutedTitleList = defaults.string(forKey: Keys.mutedTitleList) ?? MutedTitle.defaultList
+        }
+
+        let storedSync = defaults.object(forKey: Keys.calendarSyncInterval) as? Int
+        calendarSyncInterval = CalendarSyncInterval(rawValue: storedSync ?? CalendarSyncInterval.sixHours.rawValue) ?? .sixHours
 
         let storedPosition = defaults.string(forKey: Keys.bannerPosition) ?? ""
         bannerPosition = BannerPositionPreset(rawValue: storedPosition) ?? .top

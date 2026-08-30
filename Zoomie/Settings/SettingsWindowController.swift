@@ -6,11 +6,21 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let settings: SettingsStore
     private let calendarService: CalendarService
     private let previewBanner: () -> Void
+    private let syncCalendars: () -> Void
+    private let updates: AppUpdateService
 
-    init(settings: SettingsStore, calendarService: CalendarService, previewBanner: @escaping () -> Void) {
+    init(
+        settings: SettingsStore,
+        calendarService: CalendarService,
+        previewBanner: @escaping () -> Void,
+        syncCalendars: @escaping () -> Void,
+        updates: AppUpdateService
+    ) {
         self.settings = settings
         self.calendarService = calendarService
         self.previewBanner = previewBanner
+        self.syncCalendars = syncCalendars
+        self.updates = updates
         super.init(window: nil)
     }
 
@@ -24,14 +34,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             window = makeWindow()
         }
         calendarService.refreshCalendars()
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        window?.makeKeyAndOrderFront(nil)
+        AppActivation.bringToFront(window!)
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         sender.orderOut(nil)
-        NSApp.setActivationPolicy(.accessory)
+        AppActivation.restoreAccessoryIfNeeded()
         return false
     }
 
@@ -40,7 +48,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             rootView: SettingsView(
                 settings: settings,
                 calendarService: calendarService,
-                previewBanner: previewBanner
+                previewBanner: previewBanner,
+                syncCalendars: syncCalendars,
+                updates: updates
             )
         )
         let window = NSWindow(contentViewController: hosting)

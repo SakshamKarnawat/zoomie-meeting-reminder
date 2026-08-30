@@ -6,13 +6,16 @@ enum EventQualifying {
         isAllDay: Bool,
         userDeclined: Bool,
         calendarIdentifier: String,
-        disabledCalendarIDs: Set<String>
+        disabledCalendarIDs: Set<String>,
+        mutedTitleTokens: [String] = []
     ) -> Bool {
         guard let title else { return false }
-        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
         guard !isAllDay else { return false }
         guard !userDeclined else { return false }
         guard !disabledCalendarIDs.contains(calendarIdentifier) else { return false }
+        guard !MutedTitle.matches(trimmed, tokens: mutedTitleTokens) else { return false }
         return true
     }
 
