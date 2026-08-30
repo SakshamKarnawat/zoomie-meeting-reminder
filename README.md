@@ -30,6 +30,8 @@ cd zoomie
 xcodebuild -scheme Zoomie -configuration Release -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO
 ```
 
+Releases are semantic versions (`vMAJOR.MINOR.PATCH`). Every push to `main` publishes a new GitHub release and stamps that version into the app. Commit prefixes decide the bump: `fix:` (or anything else) → patch `1.0.0 → 1.0.1`; `feat:` → minor `1.0.0 → 1.1.0`; `feat!:` / `fix!:` or a `BREAKING CHANGE:` footer → major `1.0.0 → 2.0.0`. `install.sh` still pulls GitHub’s latest release. `scripts/semver.sh` prints the next number locally (`test` / `build` subcommands for CI).
+
 The app lands under Xcode’s DerivedData `Build/Products/Release/Zoomie.app`. Copy it to `/Applications` if you want Launch at Login to stick.
 
 Regenerate the OpenMoji Dock/app icon with `scripts/generate-icons.sh` (optional; the sized PNGs are already in the repo). Pass a color source path if you already have it; otherwise the script downloads `1F436` from [OpenMoji](https://github.com/hfg-gmuend/openmoji). The menu bar uses the SF Symbol `pawprint.fill`, not this bitmap.

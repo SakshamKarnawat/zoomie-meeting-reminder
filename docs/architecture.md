@@ -54,7 +54,11 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 ## Install
 
-`install.sh` downloads `Zoomie.zip` from the GitHub `latest` release, copies `Zoomie.app` to `/Applications` (or `~/Applications` if needed), runs `xattr -rd com.apple.quarantine`, and opens the app. `.github/workflows/release.yml` builds that unsigned arm64 zip on `macos-26` (Xcode 26, same project format as this repo) on every push to `main` and on manual workflow dispatch. `macos-14` ships Xcode 15.4, which cannot open objectVersion 77.
+`install.sh` downloads `Zoomie.zip` from GitHub’s latest release (`/releases/latest`), copies `Zoomie.app` to `/Applications` (or `~/Applications` if needed), runs `xattr -rd com.apple.quarantine`, and opens the app.
+
+`.github/workflows/release.yml` builds that unsigned arm64 zip on `macos-26` (Xcode 26, same project format as this repo) on every push to `main` and on manual workflow dispatch. `macos-14` ships Xcode 15.4, which cannot open objectVersion 77.
+
+Versioning is semantic. `scripts/semver.sh` (one file) prints the next `X.Y.Z` from the latest ancestor `v*` tag (or `1.0.0` if none) and Conventional Commits since that tag: `feat` → minor, `type!` / `BREAKING CHANGE:` → major, everything else including `fix` and unprefixed messages → patch. `scripts/semver.sh test` is the self-check; `scripts/semver.sh build X.Y.Z` is `major*10000 + minor*100 + patch`. Every push therefore increments. The workflow stamps those into `xcodebuild` as `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`, then `gh release create vX.Y.Z --latest`. Tags are the source of truth — the workflow does not commit a version file back to `main`. Local `project.pbxproj` stays at `1.0.0` / `10000` until CI overrides it for a release build.
 
 ## Launch at login
 

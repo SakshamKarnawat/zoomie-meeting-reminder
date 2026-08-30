@@ -13,35 +13,68 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch version tags
+        run: git fetch --tags --force
 
       - name: Select Xcode 26
         run: |
           sudo xcode-select -s /Applications/Xcode_26.4.1.app || sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
 
+      - name: Next version
+        id: version
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          chmod +x scripts/semver.sh
+          scripts/semver.sh test
+          version="$(scripts/semver.sh)"
+          build="$(scripts/semver.sh build "$version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "Next version: $version ($build)"
+
+      - name: Skip if this commit is already released
+        id: skip
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "Tag v${{ steps.version.outputs.version }} already exists; skip publish."
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build unsigned app
+        if: steps.skip.outputs.already != 'true'
         run: |
           xcodebuild -scheme Zoomie -project Zoomie.xcodeproj \
             -configuration Release \
             -destination 'platform=macOS,arch=arm64' \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="${{ steps.version.outputs.version }}" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build }}" \
             build
 
       - name: Zip app
+        if: steps.skip.outputs.already != 'true'
         run: |
           ditto -c -k --keepParent \
             build/DerivedData/Build/Products/Release/Zoomie.app \
             Zoomie.zip
 
-      - name: Publish latest release
+      - name: Publish versioned release
+        if: steps.skip.outputs.already != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest Zoomie.zip --clobber
-          else
-            gh release create latest Zoomie.zip \
-              --title "Zoomie" \
-              --notes "Unsigned Apple Silicon build."
-          fi
+          version="${{ steps.version.outputs.version }}"
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create "v${version}" Zoomie.zip \
+            --title "Zoomie ${version}" \
+            --generate-notes \
+            --latest \
+            --target "${GITHUB_SHA}"

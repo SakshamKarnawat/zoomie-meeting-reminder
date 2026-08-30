@@ -1,0 +1,35 @@
+---
+description: Ask to commit and push at the end of each task; version via conventional commits
+alwaysApply: true
+---
+
+# Ask before commit and push
+
+After finishing a task that changed the repo (bug fix, feature, refactor, docs, icons, CI), **stop and ask**. Do not commit or push until the user says yes.
+
+If they say no, leave the working tree as-is so they can keep stacking fixes and features.
+
+Skip the ask when nothing is dirty, or the turn was only Q&A.
+
+## What to ask
+
+Propose one Conventional Commit subject (and a one-line body only if the why is not obvious). State the **semver bump this message will cause** after push:
+
+- `fix:` / `docs:` / `chore:` / unprefixed → **patch** (`1.0.0` → `1.0.1`)
+- `feat:` → **minor** (`1.0.0` → `1.1.0`)
+- `feat!:` / `fix!:` or `BREAKING CHANGE:` footer → **major** (`1.0.0` → `2.0.0`)
+
+If the session mixed a feature and a fix, use `feat:` (highest bump). Example ask:
+
+> Commit and push to `main` as `fix: keep settings window in front` (patch → `1.0.1`)? Say **yes** to ship, or keep going.
+
+## If they say yes
+
+1. Follow the repo git commit protocol (status, diff, log, HEREDOC message, no `--no-verify`, no amend unless they asked).
+2. Do **not** hand-edit `MARKETING_VERSION` / tags. Versioning is `scripts/semver.sh` + `.github/workflows/release.yml` on push to `main`.
+3. Push `HEAD` to `origin` with `-u` if needed. That publish job tags `vX.Y.Z` and uploads `Zoomie.zip`.
+4. Confirm the remote and the expected tag.
+
+## If they say no
+
+Do not commit, push, tag, or bump versions. Continue the next request on the same uncommitted work.
