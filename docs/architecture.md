@@ -44,7 +44,7 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 ## Install
 
-`install.sh` downloads `Zoomie.zip` from the GitHub `latest` release, copies `Zoomie.app` to `/Applications` (or `~/Applications` if needed), runs `xattr -rd com.apple.quarantine`, and opens the app. `.github/workflows/release.yml` builds that unsigned arm64 zip on every push to `main` (and on manual workflow dispatch).
+`install.sh` downloads `Zoomie.zip` from the GitHub `latest` release, copies `Zoomie.app` to `/Applications` (or `~/Applications` if needed), runs `xattr -rd com.apple.quarantine`, and opens the app. `.github/workflows/release.yml` builds that unsigned arm64 zip on `macos-26` (Xcode 26, same project format as this repo) on every push to `main` and on manual workflow dispatch. `macos-14` ships Xcode 15.4, which cannot open objectVersion 77.
 
 ## Launch at login
 
