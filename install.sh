@@ -65,7 +65,7 @@ open "${DEST}"
 echo
 echo "  Done."
 echo
-echo "  Look at the top-right of the screen for a small bird icon."
+echo "  Look at the top-right of the screen for a small pawprint icon."
 echo "  Click it → Settings…  Allow Calendar access if asked."
 echo
 echo "  If the Mac says it cannot open Zoomie:"

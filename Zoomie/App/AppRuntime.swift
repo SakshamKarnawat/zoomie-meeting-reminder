@@ -6,6 +6,11 @@ final class AppRuntime {
     let calendarService: CalendarService
     let banner: BannerController
     let scheduler: EventScheduler
+    private(set) lazy var settingsWindow = SettingsWindowController(
+        settings: settings,
+        calendarService: calendarService,
+        previewBanner: { [unowned self] in self.previewBanner() }
+    )
 
     private var didStart = false
 
@@ -47,5 +52,9 @@ final class AppRuntime {
         )
         let image = settings.customImageBookmark.flatMap(CustomImageStore.loadImage)
         banner.preview(message: message, settings: settings, customImage: image)
+    }
+
+    func openSettings() {
+        settingsWindow.showSettings()
     }
 }

@@ -5,20 +5,15 @@ struct ZoomieApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra("Zoomie", systemImage: "bird") {
+        MenuBarExtra {
             MenuBarMenu(
                 settings: appDelegate.runtime.settings,
+                openSettings: appDelegate.runtime.openSettings,
                 previewBanner: appDelegate.runtime.previewBanner,
                 quit: quitApp
             )
-        }
-
-        Settings {
-            SettingsView(
-                settings: appDelegate.runtime.settings,
-                calendarService: appDelegate.runtime.calendarService,
-                previewBanner: appDelegate.runtime.previewBanner
-            )
+        } label: {
+            Image(nsImage: MenuBarIcon.templateImage)
         }
     }
 

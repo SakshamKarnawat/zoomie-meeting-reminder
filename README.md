@@ -12,7 +12,7 @@ Apple Silicon, macOS 14+.
 curl -fsSL https://raw.githubusercontent.com/SakshamKarnawat/zoomie-meeting-reminder/main/install.sh | bash
 ```
 
-Menu bar bird → **Settings…**. Allow Calendar access if prompted. If macOS blocks the app: **System Settings → Privacy & Security → Open Anyway**.
+Menu bar pawprint → **Settings…**. Allow Calendar access if prompted. If macOS blocks the app: **System Settings → Privacy & Security → Open Anyway**.
 
 EventKit reads calendars already linked in **System Settings > Internet Accounts** (iCloud and Google included). No OAuth or CalDAV in this app.
 
@@ -32,6 +32,8 @@ xcodebuild -scheme Zoomie -configuration Release -destination 'platform=macOS,ar
 
 The app lands under Xcode’s DerivedData `Build/Products/Release/Zoomie.app`. Copy it to `/Applications` if you want Launch at Login to stick.
 
+Regenerate the OpenMoji Dock/app icon with `scripts/generate-icons.sh` (optional; the sized PNGs are already in the repo). Pass a color source path if you already have it; otherwise the script downloads `1F436` from [OpenMoji](https://github.com/hfg-gmuend/openmoji). The menu bar uses the SF Symbol `pawprint.fill`, not this bitmap.
+
 In Xcode: open `Zoomie.xcodeproj`, select the Zoomie scheme, Run. First launch asks for Calendar access.
 
 ## Manual unsigned copy
@@ -46,7 +48,7 @@ Open Zoomie. Grant Calendar access when prompted. If access was denied earlier: 
 
 ## Menu and settings
 
-Menu bar item (bird icon): **Settings…**, **Test Now**, **Launch at Login**, **Quit**.
+Menu bar item (SF Symbol `pawprint.fill`, template-tinted for light/dark): **Settings…**, **Test Now**, **Launch at Login**, **Quit**. **Settings…** brings the existing settings window forward if it is already open — it does not spawn a second one.
 
 **Test Now** flies the banner immediately with the current character, theme, font, and message template (`{event}` becomes `Zoomie preview`, `{mins}` is the selected lead time). No calendar event needed. If a banner is already crossing the screen, Test Now does nothing.
 
@@ -61,6 +63,14 @@ Settings (UserDefaults, no extra config file):
 - Calendar checklist (all on by default)
 - Launch at Login via `SMAppService.mainApp`
 - Test Now (same action as the menu item)
+
+## Inspired by
+
+Zoomie’s design and feature set were inspired by [Quakpit](https://quakpit.app) ([Ooble-Studio/QuakPit](https://github.com/Ooble-Studio/QuakPit)).
+
+## Credits
+
+The Dock/app icon is the OpenMoji dog face (U+1F436), resized with `scripts/generate-icons.sh`. [OpenMoji](https://openmoji.org) — the open-source emoji and icon project. License: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Source: [hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji). The menu bar icon is the SF Symbol `pawprint.fill`.
 
 ## Architecture
 

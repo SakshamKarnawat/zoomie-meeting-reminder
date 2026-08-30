@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct SettingsOpenButton: View {
+    let open: () -> Void
+
     var body: some View {
-        SettingsLink {
-            Text("Settings…")
-        }
+        Button("Settings…", action: open)
     }
 }

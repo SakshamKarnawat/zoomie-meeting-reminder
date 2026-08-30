@@ -12,6 +12,14 @@ The panel is borderless, transparent, click-through (`ignoresMouseEvents = true`
 
 The window is sized to the banner content (character + ribbon), not the full screen. Vertical placement is `BannerPlacement.originY(visibleFrame:bannerHeight:fromTop:)` using `SettingsStore.resolvedFromTop` (0 = top, 1 = bottom, with `BannerPlacement.edgeInset`). Settings preview calls the same `offsetFromTop` and scales it — no second formula.
 
+## Settings window
+
+`AppRuntime` keeps one `SettingsWindowController`. There is no SwiftUI `Settings` scene and no `SettingsLink` — those do not refocus an already-open window while Zoomie is an accessory app (`LSUIElement`). Menu **Settings…** calls `openSettings()` → `showSettings()`: create the `NSWindow` (hosting `SettingsView`) on first click; on later clicks call `NSApp.setActivationPolicy(.regular)`, `NSApp.activate(ignoringOtherApps: true)`, and `makeKeyAndOrderFront` on that same instance. Close orders the window out (`isReleasedWhenClosed = false`, `windowShouldClose` returns false) and restores `.accessory`. Two settings windows are never created.
+
+## Menu bar and app icon
+
+`MenuBarExtra` uses `MenuBarIcon.templateImage`: SF Symbol `pawprint.fill` as an `NSImage` with `isTemplate = true`, sized to 18 pt so it matches other menu bar icons and follows light/dark tint. The Dock/Finder icon is `AppIcon.appiconset` (OpenMoji color `1F436`, 16–1024 px). `scripts/generate-icons.sh` downloads the 618×618 color source if needed and resizes it with `sips` — it does not generate the tray icon.
+
 ## Marquee
 
 The **window** moves, not an inner SwiftUI slide. `BannerAnimator` runs one 120 Hz `Timer` on the main `.common` run loop and only writes `setFrameOrigin` each tick — it does not rebuild the SwiftUI view. (A window-tied `CADisplayLink` was dropped: the panel starts fully off-screen, so that link never fired and Test Now played the sound with no visible banner.) Speed is `Design.pixelsPerSecond` (220). Duration is `(screenWidth + bannerWidth) / speed`. `BannerMotion.progress` eases the first and last 10% (`Design.easePortion`); the middle stretch is linear. Start `x = screen.minX - bannerWidth`, end `x = screen.maxX`. Hosted in `NSHostingController` sized with `sizeThatFits`, not a forced 2400-pt frame. Then the panel is ordered out. Only one banner runs at a time (`isShowing`).
