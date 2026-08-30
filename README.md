@@ -52,7 +52,7 @@ Menu bar item (bird icon): **Settings…**, **Test Now**, **Launch at Login**, *
 
 Settings (UserDefaults, no extra config file):
 
-- Character: Cat or Corgi (code-drawn, looping bob/wag), or a custom image
+- Character: Cat or Corgi (code-drawn, looping bob/wag, a soft color-matched glow plus a light fill gradient so they stay readable), color swatches plus a color picker, or a custom image
 - Banner position: Top, Upper-center, or custom % from top, with a scaled screen preview
 - Banner theme: Classic, Midnight, Sunset, Mint, Bubblegum
 - Lead time: 5 or 10 minutes, optional ping at meeting start

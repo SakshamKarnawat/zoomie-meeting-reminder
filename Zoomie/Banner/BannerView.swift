@@ -3,6 +3,7 @@ import SwiftUI
 struct BannerView: View {
     let message: String
     let character: CharacterChoice
+    let characterColor: Color
     let customImage: NSImage?
     let theme: BannerTheme
     let font: Font
@@ -12,7 +13,7 @@ struct BannerView: View {
             RibbonLabel(message: message, theme: theme, font: font)
             TowingRope(color: theme.rope)
                 .zIndex(-1)
-            CharacterSprite(choice: character, customImage: customImage)
+            CharacterSprite(choice: character, color: characterColor, customImage: customImage)
         }
         .shadow(color: .black.opacity(0.28), radius: 8, x: 2, y: 5)
         .padding(Design.bannerShadowPadding)
@@ -26,6 +27,7 @@ struct BannerView: View {
     BannerView(
         message: "Call with Jack in 5 minutes",
         character: .cat,
+        characterColor: StoredColor.color(fromHex: StoredColor.defaultHex),
         customImage: nil,
         theme: .classic,
         font: BannerFontChoice.rounded.font

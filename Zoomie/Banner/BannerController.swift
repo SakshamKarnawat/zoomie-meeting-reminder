@@ -54,6 +54,7 @@ final class BannerController {
         let root = BannerView(
             message: message,
             character: settings.character,
+            characterColor: settings.characterColor,
             customImage: customImage,
             theme: settings.theme,
             font: settings.font.font

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -16,6 +17,7 @@ final class SettingsStore {
         static let launchAtLogin = "launchAtLogin"
         static let bannerPosition = "bannerPosition"
         static let bannerFromTop = "bannerFromTop"
+        static let characterColor = "characterColor"
     }
 
     private let defaults: UserDefaults
@@ -30,6 +32,10 @@ final class SettingsStore {
 
     var customImagePath: String? {
         didSet { defaults.set(customImagePath, forKey: Keys.customImagePath) }
+    }
+
+    var characterColor: Color {
+        didSet { defaults.set(StoredColor.hex(from: characterColor), forKey: Keys.characterColor) }
     }
 
     var theme: BannerTheme {
@@ -97,6 +103,7 @@ final class SettingsStore {
 
         customImageBookmark = defaults.data(forKey: Keys.customImageBookmark)
         customImagePath = defaults.string(forKey: Keys.customImagePath)
+        characterColor = StoredColor.color(fromHex: defaults.string(forKey: Keys.characterColor) ?? StoredColor.defaultHex)
 
         let storedTheme = defaults.string(forKey: Keys.theme) ?? ""
         theme = BannerTheme(rawValue: storedTheme) ?? .classic

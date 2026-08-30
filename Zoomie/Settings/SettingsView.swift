@@ -14,6 +14,7 @@ struct SettingsView: View {
             }
 
             CharacterPickerSection(settings: settings)
+            CharacterColorSection(settings: settings)
             ThemePickerSection(settings: settings)
             BannerPositionSection(
                 settings: settings,

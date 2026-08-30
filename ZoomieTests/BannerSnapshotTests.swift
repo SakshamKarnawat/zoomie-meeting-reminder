@@ -8,6 +8,7 @@ struct BannerSnapshotTests {
         let view = BannerView(
             message: "Call with Jack in 5 minutes",
             character: .cat,
+            characterColor: StoredColor.color(fromHex: StoredColor.defaultHex),
             customImage: nil,
             theme: .classic,
             font: BannerFontChoice.rounded.font
