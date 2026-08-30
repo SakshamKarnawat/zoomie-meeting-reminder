@@ -1,0 +1,26 @@
+---
+description: Keep docs in sync with code on every change
+alwaysApply: true
+---
+
+# Docs stay current
+
+When you change code in this repo, update every doc that describes that code in the **same pass**. Do not leave a follow-up.
+
+## What to touch
+
+- `README.md` — user-facing behavior, build/run, install/`xattr`, settings, constraints
+- `docs/architecture.md` — scheduling, calendar filtering, banner window, marquee, wake handling, launch-at-login
+
+If a new user-facing behavior or architectural mechanism appears, add it to the matching doc. If a behavior is removed or renamed, delete or rewrite the stale claim.
+
+## Consistency
+
+- README and `docs/architecture.md` must not contradict each other.
+- Docs must match the current codebase (types, timers, window flags, settings keys/labels, deployment target, arch).
+- Do not invent features in docs that the code does not implement.
+- Do not leave comments or docs that describe a previous design.
+
+## Example
+
+Code changes `Design.animationDuration` from 4.5s to 6s → update the duration stated in `docs/architecture.md` (and README if it mentions the number) in the same edit set.
