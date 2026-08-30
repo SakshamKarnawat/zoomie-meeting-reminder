@@ -53,6 +53,7 @@ struct SettingsView: View {
                 }
             }
 
+            CalendarSourceSection()
             CalendarListSection(settings: settings, calendars: calendarService.calendars)
             IgnoreTitlesSection(settings: settings)
 

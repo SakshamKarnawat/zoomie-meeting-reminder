@@ -14,7 +14,7 @@ curl -fsSL https://raw.githubusercontent.com/SakshamKarnawat/zoomie-meeting-remi
 
 Menu bar pawprint → **Settings…**. Allow Calendar access if prompted. If macOS blocks the app: **System Settings → Privacy & Security → Open Anyway**.
 
-EventKit reads calendars already linked in **System Settings > Internet Accounts** (iCloud and Google included). No OAuth or CalDAV in this app.
+EventKit reads calendars already linked in **System Settings → Internet Accounts** (iCloud, Google, and Outlook included). Those must appear in Calendar.app first. No OAuth or CalDAV in this app. Settings explains this under **Where events come from**.
 
 ## Qualifying events
 
@@ -63,6 +63,7 @@ Settings (UserDefaults, no extra config file):
 - Calendar refresh: 4 / 6 / 12 / 24 hours (default 6), plus **Sync Now** (same action as the menu item). EventKit still updates as soon as the store changes.
 - Message template, default `{event} in {mins} min`
 - Banner font: System, Rounded, Serif, Mono, Condensed
+- Where events come from: Zoomie only reads Apple Calendar. Add iCloud, Google, or Outlook in System Settings → Internet Accounts (button in Settings) so those events appear in Calendar.app
 - Calendar checklist (all on by default)
 - Ignore titles: comma-separated whole-word list (default `busy, blocked, focus, hold, ooo`)
 - Launch at Login via `SMAppService.mainApp`

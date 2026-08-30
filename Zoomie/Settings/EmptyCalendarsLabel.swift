@@ -5,7 +5,7 @@ struct EmptyCalendarsLabel: View {
         ContentUnavailableView(
             "No calendars",
             systemImage: "calendar.badge.exclamationmark",
-            description: Text("Link iCloud or Google in System Settings > Internet Accounts, then reopen Zoomie.")
+            description: Text("Add iCloud, Google, or Outlook in System Settings → Internet Accounts so they appear in Calendar.app, then use Sync Now.")
         )
     }
 }

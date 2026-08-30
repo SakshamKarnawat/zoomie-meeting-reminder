@@ -52,7 +52,7 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 ## Calendar filtering
 
-`CalendarService` uses EventKit only (`requestFullAccessToEvents`). Denied access shows one alert pointing at **System Settings > Privacy & Security > Calendars**, then the app exits. No retry loop.
+`CalendarService` uses EventKit only (`requestFullAccessToEvents`). Denied access shows one alert pointing at **System Settings > Privacy & Security > Calendars**, then the app exits. No retry loop. Settings **Where events come from** (`CalendarSourceSection`) states that Zoomie only reads calendars already in Calendar.app — Google, Outlook, and iCloud must be added under **System Settings → Internet Accounts** first. **Open Internet Accounts…** calls `SystemSettingsLink.openInternetAccounts`.
 
 `EventQualifying` is the pure filter: non-empty title, not all-day, user has not declined (current-user attendee status `.declined`), calendar not in `disabledCalendarIDs`, title not matched by `MutedTitle` against `SettingsStore.mutedTitleTokens` (comma-separated, default `busy, blocked, focus, hold, ooo`; single tokens are whole-word so “Busy” mutes and “Business review” does not). New calendars are on by default because we store the disabled set, not the enabled set.
 
