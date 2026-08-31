@@ -2,6 +2,12 @@
 
 What changed in each Zoomie release. GitHub Releases use the same notes.
 
+## [1.6.0] - 2026-08-31
+
+### Features
+
+- greet once and let people pick a calendar
+
 ## [1.5.0] - 2026-08-31
 
 ### Features
