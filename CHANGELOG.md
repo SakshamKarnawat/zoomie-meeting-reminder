@@ -2,6 +2,12 @@
 
 What changed in each Zoomie release. GitHub Releases use the same notes.
 
+## [1.4.1] - 2026-08-31
+
+### Fixes
+
+- unblock Google sign-in errors
+
 ## [1.4.0] - 2026-08-31
 
 ### Features
