@@ -26,4 +26,10 @@ enum Design {
     static let lookAheadDays = 60
     static let emptyCalendarRefresh: TimeInterval = 24 * 60 * 60
     static let pickerHitSize: Double = 44
+    static let welcomeWidth: Double = 420
+    static let welcomePadding: Double = 28
+    static let welcomeIconSide: Double = 48
+    static let welcomeSpacing: Double = 20
+    static let welcomeCardPadding: Double = 14
+    static let welcomeCardRadius: Double = 12
 }

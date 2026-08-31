@@ -9,4 +9,11 @@ struct SystemSettingsLinkTests {
             #expect(URL(string: string) != nil)
         }
     }
+
+    @Test func calendarsPrivacyURLsParse() {
+        #expect(!SystemSettingsLink.calendarsPrivacyURLs.isEmpty)
+        for string in SystemSettingsLink.calendarsPrivacyURLs {
+            #expect(URL(string: string) != nil)
+        }
+    }
 }

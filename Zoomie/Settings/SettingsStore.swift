@@ -20,6 +20,7 @@ final class SettingsStore {
         static let characterColor = "characterColor"
         static let mutedTitleList = "mutedTitleList"
         static let calendarSyncInterval = "calendarSyncIntervalHours"
+        static let hasCompletedWelcome = "hasCompletedWelcome"
     }
 
     private let defaults: UserDefaults
@@ -111,6 +112,10 @@ final class SettingsStore {
         }
     }
 
+    var hasCompletedWelcome: Bool {
+        didSet { defaults.set(hasCompletedWelcome, forKey: Keys.hasCompletedWelcome) }
+    }
+
     var loginItemError: String?
     private var isApplyingLoginItem = false
     var onSchedulingRelevantChange: (() -> Void)?
@@ -156,6 +161,7 @@ final class SettingsStore {
         bannerPosition = BannerPositionPreset(rawValue: storedPosition) ?? .top
         bannerFromTop = defaults.object(forKey: Keys.bannerFromTop) as? Double ?? 0
 
+        hasCompletedWelcome = defaults.bool(forKey: Keys.hasCompletedWelcome)
         launchAtLogin = LoginItemService.isEnabled
         defaults.set(launchAtLogin, forKey: Keys.launchAtLogin)
     }

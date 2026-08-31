@@ -66,7 +66,7 @@ echo
 echo "  Done."
 echo
 echo "  Look at the top-right of the screen for a small pawprint icon."
-echo "  Click it → Settings…  Allow Calendar access if asked."
+echo "  First open: pick Apple Calendar or Google Calendar in the welcome window."
 echo
 echo "  If the Mac says it cannot open Zoomie:"
 echo "  System Settings → Privacy & Security → Open Anyway"

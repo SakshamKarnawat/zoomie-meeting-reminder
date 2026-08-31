@@ -17,6 +17,10 @@ final class AppRuntime {
         updates: updates
     )
     private(set) lazy var aboutWindow = AboutWindowController(updates: updates)
+    private(set) lazy var welcomeWindow = WelcomeWindowController(
+        catalog: catalog,
+        onFinished: { [unowned self] in self.finishWelcome() }
+    )
 
     private var didStart = false
 
@@ -54,14 +58,27 @@ final class AppRuntime {
         guard !didStart else { return }
         didStart = true
 
-        let granted = await catalog.apple.requestAccess()
-        guard granted else {
-            catalog.apple.presentDeniedAlertAndTerminate()
-            return
+        if catalog.apple.hasAccess {
+            catalog.apple.refreshCalendars()
         }
 
         scheduler.start()
         calendarSync.start()
+
+        if WelcomeGate.shouldShow(
+            hasCompletedWelcome: settings.hasCompletedWelcome,
+            appleAuthorized: catalog.apple.hasAccess,
+            googleSignedIn: catalog.google.isSignedIn
+        ) {
+            welcomeWindow.showWelcome()
+        }
+    }
+
+    func finishWelcome() {
+        settings.hasCompletedWelcome = true
+        catalog.bump()
+        scheduler.reschedule()
+        welcomeWindow.dismiss()
     }
 
     func previewBanner() {

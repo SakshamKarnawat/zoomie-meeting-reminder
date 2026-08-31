@@ -53,13 +53,15 @@ struct SettingsView: View {
                 }
             }
 
-            CalendarSourceSection()
-            CalendarListSection(
-                settings: settings,
-                title: "Apple calendars",
-                calendars: catalog.appleCalendars,
-                emptyLabel: "Add iCloud or Outlook in System Settings → Internet Accounts so they appear in Calendar.app, then use Sync Now."
-            )
+            CalendarSourceSection(apple: catalog.apple, afterChange: syncCalendars)
+            if catalog.apple.hasAccess {
+                CalendarListSection(
+                    settings: settings,
+                    title: "Apple calendars",
+                    calendars: catalog.appleCalendars,
+                    emptyLabel: "Add iCloud or Outlook in System Settings → Internet Accounts so they appear in Calendar.app, then use Sync Now."
+                )
+            }
             GoogleAccountSection(google: catalog.google, afterChange: syncCalendars)
             if catalog.google.isSignedIn {
                 CalendarListSection(

@@ -12,9 +12,9 @@ Apple Silicon, macOS 14+.
 curl -fsSL https://raw.githubusercontent.com/SakshamKarnawat/zoomie-meeting-reminder/main/install.sh | bash
 ```
 
-Menu bar pawprint → **Settings…**. Allow Calendar access if prompted. If macOS blocks the app: **System Settings → Privacy & Security → Open Anyway**.
+The first open shows a one-time welcome: pick **Apple Calendar** or **Google Calendar** (or Not now). Apple Calendar is not requested until you choose it. Menu bar pawprint → **Settings…** to add the other source later. If macOS blocks the app: **System Settings → Privacy & Security → Open Anyway**.
 
-EventKit reads **Apple Calendar** (calendars already linked in **System Settings → Internet Accounts**, including iCloud and Outlook). **Google Calendar** is a separate optional sign-in via the Google Calendar API — it does not go through Calendar.app. Settings explains both under **Apple Calendar** and **Google Calendar**. If the same meeting exists in both, Zoomie keeps one copy.
+**Apple Calendar** is EventKit (calendars already linked in **System Settings → Internet Accounts**, including iCloud and Outlook). **Google Calendar** is a separate sign-in via the Google Calendar API — it does not go through Calendar.app. Settings explains both. If the same meeting exists in both, Zoomie keeps one copy.
 
 ## Qualifying events
 
@@ -36,7 +36,7 @@ The app lands under Xcode’s DerivedData `Build/Products/Release/Zoomie.app`. C
 
 Regenerate the OpenMoji Dock/app icon with `scripts/generate-icons.sh` (optional; the sized PNGs are already in the repo). Pass a color source path if you already have it; otherwise the script downloads `1F436` from [OpenMoji](https://github.com/hfg-gmuend/openmoji). The menu bar uses the SF Symbol `pawprint.fill`, not this bitmap.
 
-In Xcode: open `Zoomie.xcodeproj`, select the Zoomie scheme, Run. First launch asks for Calendar access.
+In Xcode: open `Zoomie.xcodeproj`, select the Zoomie scheme, Run. First launch shows the welcome window.
 
 ## Manual unsigned copy
 
@@ -46,7 +46,7 @@ If you already have `Zoomie.app`: copy it to `/Applications`, then:
 xattr -rd com.apple.quarantine "/Applications/Zoomie.app"
 ```
 
-Open Zoomie. Grant Calendar access when prompted. If access was denied earlier: **System Settings > Privacy & Security > Calendars**, enable Zoomie, then reopen the app.
+Open Zoomie. On first launch, pick Apple or Google in the welcome window. If you chose Apple and access was denied: **System Settings > Privacy & Security > Calendars**, enable Zoomie, then Connect Apple Calendar again in Settings.
 
 ## Menu and settings
 
@@ -63,7 +63,7 @@ Settings (UserDefaults, no extra config file):
 - Calendar refresh: 4 / 6 / 12 / 24 hours (default 6), plus **Sync Now** (same action as the menu item). Sync Now reloads Apple Calendar and, if you are signed in, Google Calendar. EventKit still updates as soon as the store changes.
 - Message template, default `{event} in {mins} min`
 - Banner font: System, Rounded, Serif, Mono, Condensed
-- Apple Calendar: calendars already in Calendar.app (iCloud / Outlook / Internet Accounts). **Open Internet Accounts…**
+- Apple Calendar: optional. **Connect Apple Calendar…** if you skipped it on welcome, then calendars already in Calendar.app (iCloud / Outlook / Internet Accounts). **Open Internet Accounts…**
 - Google Calendar: optional **Connect Google…** (OAuth, tokens in Keychain). Separate checklist from Apple calendars
 - Calendar checklists (all on by default)
 - Ignore titles: comma-separated whole-word list (default `busy, blocked, focus, hold, ooo`)
@@ -85,7 +85,7 @@ See [docs/architecture.md](docs/architecture.md) for scheduling, Apple and Googl
 
 ## Constraints
 
-No paywall, no telemetry. Network is EventKit’s local calendar store, optional Google Calendar API after you connect a Google account, plus a user-started GitHub check/install for updates. arm64 only. Requires macOS 14 or later.
+No paywall, no telemetry. Network is EventKit’s local calendar store after you connect Apple Calendar, and/or the Google Calendar API after you connect a Google account, plus a user-started GitHub check/install for updates. arm64 only. Requires macOS 14 or later.
 
 ## Google Calendar (developers)
 

@@ -1,6 +1,6 @@
 # Zoomie architecture
 
-Feature folders under `Zoomie/`: App, Settings, Calendar, Google, Banner, Scheduling, Update. One Swift type per file. Shared UI numbers live in `Design`. Settings persist through `SettingsStore` → `UserDefaults`. Google OAuth tokens persist in the Keychain (`GoogleTokenStore`).
+Feature folders under `Zoomie/`: App, Settings, Welcome, Calendar, Google, Banner, Scheduling, Update. One Swift type per file. Shared UI numbers live in `Design`. Settings persist through `SettingsStore` → `UserDefaults`. Google OAuth tokens persist in the Keychain (`GoogleTokenStore`).
 
 Deployment target is macOS 14 (Sonoma); later macOS versions are supported. `SettingsStore`, `CalendarService`, `GoogleCalendarService`, and `EventCatalog` are `@Observable` `@MainActor` classes. Settings views take stores as `@Bindable`. `AppRuntime` and `EventScheduler` are plain `@MainActor` classes. UserDefaults writes live in `SettingsStore` property `didSet` — not `@AppStorage` inside the observable class.
 
@@ -14,7 +14,9 @@ The window is sized to the banner content (character + ribbon), not the full scr
 
 ## Settings window
 
-`AppRuntime` keeps one `SettingsWindowController` and one `AboutWindowController`. There is no SwiftUI `Settings` scene and no `SettingsLink` — those do not refocus an already-open window while Zoomie is an accessory app (`LSUIElement`). Menu **Settings…** / **About Zoomie…** create the window on first click; later clicks use `AppActivation.bringToFront` (`setActivationPolicy(.regular)`, `activate(ignoringOtherApps: true)`, `makeKeyAndOrderFront`) on that same instance. Close orders the window out (`isReleasedWhenClosed = false`, `windowShouldClose` returns false) and `AppActivation.restoreAccessoryIfNeeded` only if no other titled window is visible. Two settings windows and two about windows are never created.
+`AppRuntime` keeps one `SettingsWindowController`, one `AboutWindowController`, and one `WelcomeWindowController`. There is no SwiftUI `Settings` scene and no `SettingsLink` — those do not refocus an already-open window while Zoomie is an accessory app (`LSUIElement`). Menu **Settings…** / **About Zoomie…** create the window on first click; later clicks use `AppActivation.bringToFront` (`setActivationPolicy(.regular)`, `activate(ignoringOtherApps: true)`, `makeKeyAndOrderFront`) on that same instance. Close orders the window out (`isReleasedWhenClosed = false`, `windowShouldClose` returns false) and `AppActivation.restoreAccessoryIfNeeded` only if no other titled window is visible. Two settings windows and two about windows are never created.
+
+First launch with no Apple access and no Google session shows `WelcomeView` once (`SettingsStore.hasCompletedWelcome`). The two source cards have equal weight — EventKit is not requested until the user picks Apple Calendar. Picking a source, **Not now**, or closing the window sets the flag so the greeting does not repeat. People who already granted Calendar access or signed in with Google skip it.
 
 ## Menu bar and app icon
 
@@ -52,7 +54,7 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 ## Calendar filtering
 
-`CalendarService` uses EventKit only (`requestFullAccessToEvents`). Denied access shows one alert pointing at **System Settings > Privacy & Security > Calendars**, then the app exits. No retry loop. Settings **Apple Calendar** (`CalendarSourceSection`) is this EventKit path — iCloud and Outlook via **System Settings → Internet Accounts**. **Open Internet Accounts…** calls `SystemSettingsLink.openInternetAccounts`.
+`CalendarService` uses EventKit only (`requestFullAccessToEvents`) and only after the user chooses Apple Calendar (welcome or Settings). Denied access does not quit the app; Settings offers **Connect Apple Calendar…** and `SystemSettingsLink.openCalendarsPrivacy`. **Open Internet Accounts…** calls `SystemSettingsLink.openInternetAccounts` once access exists. Apple and Google are independent — either, both, or neither can be connected. Scheduler and sync still start with an empty catalog.
 
 `GoogleCalendarService` is a separate source. **Connect Google…** starts a loopback `http://127.0.0.1` listener (`GoogleLoopbackServer`) and lists installed browsers (`InstalledBrowsers`: Safari, Chrome, Firefox, and other known https browsers). The user picks one; Zoomie opens the Google auth URL in that app only — it does not auto-open the default browser. Tokens go in the Keychain; calendars and events come from the Google Calendar API (read-only). **Cancel** stops the listener. Client ID is `GoogleClientConfig` (public). Desktop client secret is never in source. Release builds stamp `INFOPLIST_KEY_GoogleClientSecret` from the GitHub Actions secret `ZOOMIE_GOOGLE_CLIENT_SECRET`. At runtime Zoomie reads Info.plist, then Keychain (`GoogleClientSecretStore`, Settings paste on a local build), then `ZOOMIE_GOOGLE_CLIENT_SECRET` in the process environment. Google calendar IDs are stored as `google:` plus the API id so they do not collide with EventKit identifiers. `EventCatalog` merges both into `TimedEvent` values; `EventDedupe` drops a Google copy when the same title starts within 90 seconds of an Apple event, unless only Google has a meeting URL. Google Meet links come from `hangoutLink`; Zoomie does not treat the Calendar HTML page as a join URL.
 

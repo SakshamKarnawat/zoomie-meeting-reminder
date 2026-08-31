@@ -40,14 +40,23 @@ final class CalendarService {
     func reload() {
         guard !isReloading else { return }
         isReloading = true
+        defer { isReloading = false }
+        guard hasAccess else {
+            calendars = []
+            snapshotID += 1
+            return
+        }
         store.reset()
         store.refreshSourcesIfNecessary()
         refreshCalendars()
         snapshotID += 1
-        isReloading = false
     }
 
     func refreshCalendars() {
+        guard hasAccess else {
+            calendars = []
+            return
+        }
         calendars = store.calendars(for: .event).map { calendar in
             CalendarDescriptor(
                 id: calendar.calendarIdentifier,
@@ -60,6 +69,7 @@ final class CalendarService {
     }
 
     func upcomingEvents(disabledCalendarIDs: Set<String>, from now: Date) -> [EKEvent] {
+        guard hasAccess else { return [] }
         let end = now.addingTimeInterval(TimeInterval(Design.lookAheadDays * 24 * 60 * 60))
         let enabledCalendars = store.calendars(for: .event).filter { calendar in
             !disabledCalendarIDs.contains(calendar.calendarIdentifier)
@@ -105,13 +115,4 @@ final class CalendarService {
         }
     }
 
-    func presentDeniedAlertAndTerminate() {
-        let alert = NSAlert()
-        alert.messageText = "Calendar Access Required"
-        alert.informativeText = "Enable Zoomie in System Settings > Privacy & Security > Calendars, then open Zoomie again."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
-        NSApp.terminate(nil)
-    }
 }
