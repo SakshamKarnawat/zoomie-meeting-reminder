@@ -95,6 +95,6 @@ Zoomie uses a **Desktop** OAuth client and PKCE (loopback `http://127.0.0.1` in 
 2. OAuth consent screen: External, then **Publish app** (In production). Leave it unverified. Do **not** leave it in Testing — Google’s “app is being tested” Continue button 500s on desktop loopback.
 3. Credentials → Create OAuth client → application type **Desktop app**.
 4. Paste the client ID into `GoogleClientConfig.bakedInClientID`. Do not put the client secret in source.
-5. Put the Desktop client secret in the GitHub repo Action secret `ZOOMIE_GOOGLE_CLIENT_SECRET`. CI stamps it into the release Info.plist. It is not in git.
+5. Put the Desktop client secret in the GitHub repo Action secret `ZOOMIE_GOOGLE_CLIENT_SECRET`. CI passes it as the `ZOOMIE_GOOGLE_CLIENT_SECRET` build setting into `Info-Google.plist`. It is not in git.
 
 Connect Google in Settings, then pick an installed browser (Safari, Chrome, Firefox, …). After Google finishes, Zoomie picks up the redirect. You may see “Google hasn’t verified this app” → **Advanced** → **Go to Zoomie**. Tokens stay in the Keychain. Disconnect revokes them. The client ID is public. A Desktop client secret in a shipped `.app` is extractable; keeping it out of git is the point. Local Debug/Release builds with an empty plist can paste the secret once in Settings (Keychain).

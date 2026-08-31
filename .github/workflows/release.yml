@@ -84,8 +84,14 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             MARKETING_VERSION="${{ steps.version.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build }}" \
-            INFOPLIST_KEY_GoogleClientSecret="${ZOOMIE_GOOGLE_CLIENT_SECRET}" \
+            ZOOMIE_GOOGLE_CLIENT_SECRET="${ZOOMIE_GOOGLE_CLIENT_SECRET}" \
             build
+          plist="build/DerivedData/Build/Products/Release/Zoomie.app/Contents/Info.plist"
+          stamped="$(plutil -extract GoogleClientSecret raw "$plist" 2>/dev/null || true)"
+          if [ -z "${stamped}" ]; then
+            echo "GoogleClientSecret did not land in Info.plist. Custom INFOPLIST_KEY_ values are ignored." >&2
+            exit 1
+          fi
 
       - name: Zip app
         if: steps.skip.outputs.already != 'true'
