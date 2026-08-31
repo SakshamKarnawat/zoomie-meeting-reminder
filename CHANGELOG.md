@@ -2,6 +2,12 @@
 
 What changed in each Zoomie release. GitHub Releases use the same notes.
 
+## [1.5.0] - 2026-08-31
+
+### Features
+
+- pick a browser and keep the Google secret out of git
+
 ## [1.4.1] - 2026-08-31
 
 ### Fixes
