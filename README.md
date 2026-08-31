@@ -14,7 +14,7 @@ curl -fsSL https://raw.githubusercontent.com/SakshamKarnawat/zoomie-meeting-remi
 
 Menu bar pawprint → **Settings…**. Allow Calendar access if prompted. If macOS blocks the app: **System Settings → Privacy & Security → Open Anyway**.
 
-EventKit reads calendars already linked in **System Settings → Internet Accounts** (iCloud, Google, and Outlook included). Those must appear in Calendar.app first. No OAuth or CalDAV in this app. Settings explains this under **Where events come from**.
+EventKit reads **Apple Calendar** (calendars already linked in **System Settings → Internet Accounts**, including iCloud and Outlook). **Google Calendar** is a separate optional sign-in via the Google Calendar API — it does not go through Calendar.app. Settings explains both under **Apple Calendar** and **Google Calendar**. If the same meeting exists in both, Zoomie keeps one copy.
 
 ## Qualifying events
 
@@ -60,11 +60,12 @@ Settings (UserDefaults, no extra config file):
 - Banner position: Top, Upper-center, or custom % from top, with a scaled screen preview
 - Banner theme: Classic, Midnight, Sunset, Mint, Bubblegum
 - Lead time: 5 or 10 minutes, optional ping at meeting start
-- Calendar refresh: 4 / 6 / 12 / 24 hours (default 6), plus **Sync Now** (same action as the menu item). EventKit still updates as soon as the store changes.
+- Calendar refresh: 4 / 6 / 12 / 24 hours (default 6), plus **Sync Now** (same action as the menu item). Sync Now reloads Apple Calendar and, if you are signed in, Google Calendar. EventKit still updates as soon as the store changes.
 - Message template, default `{event} in {mins} min`
 - Banner font: System, Rounded, Serif, Mono, Condensed
-- Where events come from: Zoomie only reads Apple Calendar. Add iCloud, Google, or Outlook in System Settings → Internet Accounts (button in Settings) so those events appear in Calendar.app
-- Calendar checklist (all on by default)
+- Apple Calendar: calendars already in Calendar.app (iCloud / Outlook / Internet Accounts). **Open Internet Accounts…**
+- Google Calendar: optional **Connect Google…** (OAuth, tokens in Keychain). Separate checklist from Apple calendars
+- Calendar checklists (all on by default)
 - Ignore titles: comma-separated whole-word list (default `busy, blocked, focus, hold, ooo`)
 - Launch at Login via `SMAppService.mainApp`
 - About: version, check GitHub for a newer zip, Update Zoomie
@@ -80,8 +81,19 @@ The Dock/app icon is the OpenMoji dog face (U+1F436), resized with `scripts/gene
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for scheduling, calendar filtering, calendar sync, updates, and the banner window.
+See [docs/architecture.md](docs/architecture.md) for scheduling, Apple and Google calendars, calendar sync, updates, and the banner window.
 
 ## Constraints
 
-No paywall, no telemetry. Network is EventKit’s local calendar store plus a user-started GitHub check/install for updates. arm64 only. Requires macOS 14 or later.
+No paywall, no telemetry. Network is EventKit’s local calendar store, optional Google Calendar API after you connect a Google account, plus a user-started GitHub check/install for updates. arm64 only. Requires macOS 14 or later.
+
+## Google Calendar (developers)
+
+Zoomie uses a **Desktop** OAuth client and PKCE (loopback `http://127.0.0.1`). There is no client secret in the app. Do not create a Web or iOS client.
+
+1. In the same GCP project: enable **Google Calendar API**.
+2. OAuth consent screen (External, Testing is fine): add yourself as a test user.
+3. Credentials → Create OAuth client → application type **Desktop app**. Loopback redirects are automatic — do not add a custom redirect URI.
+4. Paste the client ID into `GoogleClientConfig.bakedInClientID`, or set `INFOPLIST_KEY_GoogleClientID` on the Zoomie target.
+
+Connect Google in Settings. Tokens stay in the Keychain. Disconnect revokes them. The client ID is public; treat refresh tokens in Keychain as the secret.

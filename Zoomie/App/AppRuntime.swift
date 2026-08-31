@@ -4,14 +4,14 @@ import Foundation
 @MainActor
 final class AppRuntime {
     let settings: SettingsStore
-    let calendarService: CalendarService
+    let catalog: EventCatalog
     let banner: BannerController
     let scheduler: EventScheduler
     let updates: AppUpdateService
     let calendarSync: CalendarSync
     private(set) lazy var settingsWindow = SettingsWindowController(
         settings: settings,
-        calendarService: calendarService,
+        catalog: catalog,
         previewBanner: { [unowned self] in self.previewBanner() },
         syncCalendars: { [unowned self] in self.syncCalendars() },
         updates: updates
@@ -22,19 +22,21 @@ final class AppRuntime {
 
     init() {
         let settings = SettingsStore()
-        let calendarService = CalendarService()
+        let apple = CalendarService()
+        let google = GoogleCalendarService()
+        let catalog = EventCatalog(apple: apple, google: google)
         let banner = BannerController()
         self.settings = settings
-        self.calendarService = calendarService
+        self.catalog = catalog
         self.banner = banner
         self.updates = AppUpdateService()
         self.scheduler = EventScheduler(
-            calendarService: calendarService,
+            catalog: catalog,
             settings: settings,
             banner: banner
         )
         self.calendarSync = CalendarSync(
-            calendarService: calendarService,
+            catalog: catalog,
             settings: settings,
             onRefreshed: { [scheduler] in
                 scheduler.reschedule()
@@ -52,9 +54,9 @@ final class AppRuntime {
         guard !didStart else { return }
         didStart = true
 
-        let granted = await calendarService.requestAccess()
+        let granted = await catalog.apple.requestAccess()
         guard granted else {
-            calendarService.presentDeniedAlertAndTerminate()
+            catalog.apple.presentDeniedAlertAndTerminate()
             return
         }
 
@@ -81,7 +83,7 @@ final class AppRuntime {
     }
 
     func nextUpcomingEvent() -> UpcomingEvent? {
-        calendarService.nextUpcomingEvent(
+        catalog.nextUpcomingEvent(
             disabledCalendarIDs: settings.disabledCalendarIDs,
             mutedTitleTokens: settings.mutedTitleTokens
         )

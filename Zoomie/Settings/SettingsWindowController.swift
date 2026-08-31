@@ -4,20 +4,20 @@ import SwiftUI
 @MainActor
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let settings: SettingsStore
-    private let calendarService: CalendarService
+    private let catalog: EventCatalog
     private let previewBanner: () -> Void
     private let syncCalendars: () -> Void
     private let updates: AppUpdateService
 
     init(
         settings: SettingsStore,
-        calendarService: CalendarService,
+        catalog: EventCatalog,
         previewBanner: @escaping () -> Void,
         syncCalendars: @escaping () -> Void,
         updates: AppUpdateService
     ) {
         self.settings = settings
-        self.calendarService = calendarService
+        self.catalog = catalog
         self.previewBanner = previewBanner
         self.syncCalendars = syncCalendars
         self.updates = updates
@@ -33,8 +33,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         if window == nil {
             window = makeWindow()
         }
-        calendarService.refreshCalendars()
+        catalog.apple.refreshCalendars()
+        catalog.bump()
         AppActivation.bringToFront(window!)
+        Task {
+            await catalog.google.refresh()
+            catalog.bump()
+        }
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
@@ -47,7 +52,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let hosting = NSHostingController(
             rootView: SettingsView(
                 settings: settings,
-                calendarService: calendarService,
+                catalog: catalog,
                 previewBanner: previewBanner,
                 syncCalendars: syncCalendars,
                 updates: updates
@@ -56,7 +61,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let window = NSWindow(contentViewController: hosting)
         window.title = "Zoomie Settings"
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        window.setContentSize(NSSize(width: 520, height: 640))
+        window.setContentSize(NSSize(width: 520, height: 720))
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.setFrameAutosaveName("ZoomieSettings")

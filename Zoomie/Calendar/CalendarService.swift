@@ -52,7 +52,8 @@ final class CalendarService {
             CalendarDescriptor(
                 id: calendar.calendarIdentifier,
                 title: calendar.title,
-                color: Color(nsColor: calendar.color)
+                color: Color(nsColor: calendar.color),
+                source: .apple
             )
         }
         .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
@@ -69,35 +70,30 @@ final class CalendarService {
         return store.events(matching: predicate)
     }
 
+    func timedEvents(disabledCalendarIDs: Set<String>, from now: Date) -> [TimedEvent] {
+        upcomingEvents(disabledCalendarIDs: disabledCalendarIDs, from: now).compactMap { event in
+            TimedEvent(event: event, declined: userDeclined(event))
+        }
+    }
+
     func nextUpcomingEvent(
         disabledCalendarIDs: Set<String>,
         mutedTitleTokens: [String],
         now: Date = .now
     ) -> UpcomingEvent? {
-        let events = upcomingEvents(disabledCalendarIDs: disabledCalendarIDs, from: now)
-            .sorted { lhs, rhs in
-                (lhs.startDate ?? .distantFuture) < (rhs.startDate ?? .distantFuture)
-            }
+        let events = timedEvents(disabledCalendarIDs: disabledCalendarIDs, from: now)
+            .sorted { $0.startDate < $1.startDate }
         for event in events {
-            guard EventQualifying.isQualifying(
+            let qualifies = EventQualifying.isQualifying(
                 title: event.title,
                 isAllDay: event.isAllDay,
-                userDeclined: userDeclined(event),
-                calendarIdentifier: event.calendar.calendarIdentifier,
+                userDeclined: event.userDeclined,
+                calendarIdentifier: event.calendarID,
                 disabledCalendarIDs: disabledCalendarIDs,
                 mutedTitleTokens: mutedTitleTokens
-            ) else { continue }
-            guard let title = event.title, let start = event.startDate else { continue }
-            if let end = event.endDate, end <= now { continue }
-            return UpcomingEvent(
-                title: title,
-                startDate: start,
-                joinURL: MeetingLink.url(
-                    eventURL: event.url,
-                    notes: event.notes,
-                    location: event.location
-                )
             )
+            guard qualifies, let upcoming = event.asUpcoming(now: now) else { continue }
+            return upcoming
         }
         return nil
     }

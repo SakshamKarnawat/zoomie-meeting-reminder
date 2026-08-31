@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Bindable var settings: SettingsStore
-    var calendarService: CalendarService
+    var catalog: EventCatalog
     let previewBanner: () -> Void
     let syncCalendars: () -> Void
     var updates: AppUpdateService
@@ -54,7 +54,21 @@ struct SettingsView: View {
             }
 
             CalendarSourceSection()
-            CalendarListSection(settings: settings, calendars: calendarService.calendars)
+            CalendarListSection(
+                settings: settings,
+                title: "Apple calendars",
+                calendars: catalog.appleCalendars,
+                emptyLabel: "Add iCloud or Outlook in System Settings → Internet Accounts so they appear in Calendar.app, then use Sync Now."
+            )
+            GoogleAccountSection(google: catalog.google, afterChange: syncCalendars)
+            if catalog.google.isSignedIn {
+                CalendarListSection(
+                    settings: settings,
+                    title: "Google calendars",
+                    calendars: catalog.googleCalendars,
+                    emptyLabel: "No Google calendars on this account. Check the account in Google Calendar, then Sync Now."
+                )
+            }
             IgnoreTitlesSection(settings: settings)
 
             Section("General") {
@@ -70,7 +84,9 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(minWidth: 480, minHeight: 560)
         .task {
-            calendarService.refreshCalendars()
+            catalog.apple.refreshCalendars()
+            await catalog.google.refresh()
+            catalog.bump()
         }
     }
 }
@@ -78,7 +94,7 @@ struct SettingsView: View {
 #Preview {
     SettingsView(
         settings: SettingsStore(),
-        calendarService: CalendarService(),
+        catalog: EventCatalog(apple: CalendarService(), google: GoogleCalendarService()),
         previewBanner: {},
         syncCalendars: {},
         updates: AppUpdateService()

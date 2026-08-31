@@ -13,7 +13,7 @@ struct CalendarSyncSection: View {
             }
             Button("Sync Now", action: syncNow)
         } footer: {
-            Text("Background pull from accounts already in Calendar. Default is 6 hours. Changes from Calendar.app still apply as soon as EventKit notifies Zoomie.")
+            Text("Pulls Apple Calendar locally and Google Calendar if you are signed in. Default is 6 hours. Calendar.app edits still apply as soon as EventKit notifies Zoomie.")
         }
     }
 }

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MenuBarMenu: View {
     @Bindable var settings: SettingsStore
-    var calendarService: CalendarService
+    var catalog: EventCatalog
     let nextEvent: () -> UpcomingEvent?
     let joinEvent: (URL) -> Void
     let openSettings: () -> Void
@@ -17,7 +17,7 @@ struct MenuBarMenu: View {
         NextEventMenuSection(
             load: nextEvent,
             join: joinEvent,
-            refreshToken: calendarService.snapshotID + menuSnapshot
+            refreshToken: catalog.snapshotID + catalog.apple.snapshotID + catalog.google.snapshotID + menuSnapshot
         )
         Divider()
         SettingsOpenButton(open: openSettings)

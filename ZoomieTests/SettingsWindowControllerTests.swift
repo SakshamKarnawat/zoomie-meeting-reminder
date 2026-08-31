@@ -7,7 +7,7 @@ struct SettingsWindowControllerTests {
     @Test func showReusesTheSameWindow() {
         let controller = SettingsWindowController(
             settings: SettingsStore(),
-            calendarService: CalendarService(),
+            catalog: EventCatalog(apple: CalendarService(), google: GoogleCalendarService()),
             previewBanner: {},
             syncCalendars: {},
             updates: AppUpdateService()

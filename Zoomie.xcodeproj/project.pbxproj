@@ -274,6 +274,7 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Zoomie reads your calendars to fly a reminder banner before upcoming meetings. Calendar data stays on this Mac.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Zoomie reads your calendars to fly a reminder banner before upcoming meetings. Calendar data stays on this Mac.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Personal use";
+				INFOPLIST_KEY_GoogleClientID = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -308,6 +309,7 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Zoomie reads your calendars to fly a reminder banner before upcoming meetings. Calendar data stays on this Mac.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Zoomie reads your calendars to fly a reminder banner before upcoming meetings. Calendar data stays on this Mac.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Personal use";
+				INFOPLIST_KEY_GoogleClientID = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

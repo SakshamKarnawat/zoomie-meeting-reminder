@@ -3,14 +3,15 @@ import Foundation
 
 @MainActor
 final class CalendarSync {
-    private let calendarService: CalendarService
+    private let catalog: EventCatalog
     private let settings: SettingsStore
     private let onRefreshed: () -> Void
     private var timer: Timer?
     private var wakeObserver: NSObjectProtocol?
+    private var refreshGeneration = 0
 
-    init(calendarService: CalendarService, settings: SettingsStore, onRefreshed: @escaping () -> Void) {
-        self.calendarService = calendarService
+    init(catalog: EventCatalog, settings: SettingsStore, onRefreshed: @escaping () -> Void) {
+        self.catalog = catalog
         self.settings = settings
         self.onRefreshed = onRefreshed
     }
@@ -53,8 +54,13 @@ final class CalendarSync {
     }
 
     private func refreshNow() {
-        calendarService.reload()
-        onRefreshed()
+        refreshGeneration += 1
+        let generation = refreshGeneration
+        Task { @MainActor in
+            await catalog.reload()
+            guard generation == refreshGeneration else { return }
+            onRefreshed()
+        }
     }
 
     private func registerWake() {

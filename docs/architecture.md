@@ -1,8 +1,8 @@
 # Zoomie architecture
 
-Feature folders under `Zoomie/`: App, Settings, Calendar, Banner, Scheduling, Update. One Swift type per file. Shared UI numbers live in `Design`. Settings persist through `SettingsStore` → `UserDefaults`.
+Feature folders under `Zoomie/`: App, Settings, Calendar, Google, Banner, Scheduling, Update. One Swift type per file. Shared UI numbers live in `Design`. Settings persist through `SettingsStore` → `UserDefaults`. Google OAuth tokens persist in the Keychain (`GoogleTokenStore`).
 
-Deployment target is macOS 14 (Sonoma); later macOS versions are supported. `SettingsStore` and `CalendarService` are `@Observable` `@MainActor` classes. Settings views take them as `@Bindable`. `AppRuntime` and `EventScheduler` are plain `@MainActor` classes. UserDefaults writes live in `SettingsStore` property `didSet` — not `@AppStorage` inside the observable class.
+Deployment target is macOS 14 (Sonoma); later macOS versions are supported. `SettingsStore`, `CalendarService`, `GoogleCalendarService`, and `EventCatalog` are `@Observable` `@MainActor` classes. Settings views take stores as `@Bindable`. `AppRuntime` and `EventScheduler` are plain `@MainActor` classes. UserDefaults writes live in `SettingsStore` property `didSet` — not `@AppStorage` inside the observable class.
 
 ## Banner window
 
@@ -20,7 +20,7 @@ The window is sized to the banner content (character + ribbon), not the full scr
 
 `MenuBarExtra` uses `MenuBarIcon.templateImage`: SF Symbol `pawprint.fill` as an `NSImage` with `isTemplate = true`, sized to 18 pt so it matches other menu bar icons and follows light/dark tint. The Dock/Finder icon is `AppIcon.appiconset` (OpenMoji color `1F436`, 16–1024 px). `scripts/generate-icons.sh` downloads the 618×618 color source if needed and resizes it with `sips` — it does not generate the tray icon.
 
-The menu’s first block is `NextEventMenuSection`: on appear it asks `CalendarService.nextUpcomingEvent` (same `EventQualifying` filter as the scheduler, including muted titles) and shows `UpcomingEventLabel` plus **Join** when `MeetingLink` found an http(s) URL on the event, notes, or location (Zoom / Meet / Teams / FaceTime / Webex preferred). **Sync Calendars Now** is the same `CalendarSync.syncNow()` as Settings. **Update Zoomie** calls `AppUpdateService.installLatest`, which runs `install.sh` from GitHub.
+The menu’s first block is `NextEventMenuSection`: on appear it asks `EventCatalog.nextUpcomingEvent` (Apple EventKit plus Google Calendar cache, same `EventQualifying` filter as the scheduler, including muted titles) and shows `UpcomingEventLabel` plus **Join** when `MeetingLink` found an http(s) URL on the event, notes, or location (Zoom / Meet / Teams / FaceTime / Webex preferred). **Sync Calendars Now** is the same `CalendarSync.syncNow()` as Settings. **Update Zoomie** calls `AppUpdateService.installLatest`, which runs `install.sh` from GitHub.
 
 ## Marquee
 
@@ -36,7 +36,7 @@ On fire, `NSSound(named: "Glass")` plays (falls back to Ping, then `NSSound.beep
 
 `EventScheduler` keeps **one** `Timer` on the main run loop for the next banner fire. No poll loop for fires.
 
-On launch, after a fire, after a scheduling-relevant settings change, on `EKEventStoreChanged`, and on wake: query EventKit for the next qualifying fires, then either fire immediately (catch-up) or `Timer(fire:interval:repeats:)` for that exact date.
+On launch, after a fire, after a scheduling-relevant settings change, on `EKEventStoreChanged`, and on wake: query `EventCatalog` for the next qualifying fires (Apple EventKit plus cached Google events), then either fire immediately (catch-up) or `Timer(fire:interval:repeats:)` for that exact date. Google is not re-fetched on every reschedule — only on Sync Now, the interval timer, wake, Settings open, and after Connect / Disconnect.
 
 A fire is `event.startDate - leadTimeMinutes`, plus `event.startDate` when “Also ping at meeting start” is on. Already-shown fires are remembered in-memory (`deliveredKeys`) so catch-up does not repeat in the same process.
 
@@ -48,13 +48,15 @@ If nothing is upcoming in the 60-day look-ahead, a single refresh timer is set f
 
 `NSWorkspace.didWakeNotification` invalidates the current timer and runs the same reschedule path as launch. `Timer` does not fire during sleep; a pre-sleep fire date would be stale after wake.
 
-`CalendarSync` is a second, repeating timer (`SettingsStore.calendarSyncInterval`, default 6 hours: 4 / 6 / 12 / 24). Each tick, each wake, and **Sync Now** (Settings next to the interval picker, and the menu item) call `CalendarService.reload()`: `EKEventStore.reset()` (drops the in-process event cache — the same reason quit/reopen used to be the only way to see Calendar.app edits), then `refreshSourcesIfNecessary()`, then `refreshCalendars()`. `EventScheduler.reschedule()` runs after that. Changing the interval restarts the timer without skipping that reload. `EKEventStoreChanged` is observed with no store-object filter and uses the same `reload()` + reschedule path; `reload()` is re-entrancy-guarded so a reset does not loop. The menu next-event row reloads when `CalendarService.snapshotID` changes or after the menu Sync item.
+`CalendarSync` is a second, repeating timer (`SettingsStore.calendarSyncInterval`, default 6 hours: 4 / 6 / 12 / 24). Each tick, each wake, and **Sync Now** call `EventCatalog.reload()`: Apple `CalendarService.reload()` (`EKEventStore.reset()`, `refreshSourcesIfNecessary()`, `refreshCalendars()`) and, if signed in, `GoogleCalendarService.refresh()` (token refresh + Calendar API). `EventScheduler.reschedule()` runs after that. Changing the interval restarts the timer without skipping that reload. `EKEventStoreChanged` still reloads Apple only, then reschedules against the current Google cache. `reload()` is re-entrancy-guarded on the Apple store so a reset does not loop. The menu next-event row reloads when catalog snapshot IDs change or after the menu Sync item.
 
 ## Calendar filtering
 
-`CalendarService` uses EventKit only (`requestFullAccessToEvents`). Denied access shows one alert pointing at **System Settings > Privacy & Security > Calendars**, then the app exits. No retry loop. Settings **Where events come from** (`CalendarSourceSection`) states that Zoomie only reads calendars already in Calendar.app — Google, Outlook, and iCloud must be added under **System Settings → Internet Accounts** first. **Open Internet Accounts…** calls `SystemSettingsLink.openInternetAccounts`.
+`CalendarService` uses EventKit only (`requestFullAccessToEvents`). Denied access shows one alert pointing at **System Settings > Privacy & Security > Calendars**, then the app exits. No retry loop. Settings **Apple Calendar** (`CalendarSourceSection`) is this EventKit path — iCloud and Outlook via **System Settings → Internet Accounts**. **Open Internet Accounts…** calls `SystemSettingsLink.openInternetAccounts`.
 
-`EventQualifying` is the pure filter: non-empty title, not all-day, user has not declined (current-user attendee status `.declined`), calendar not in `disabledCalendarIDs`, title not matched by `MutedTitle` against `SettingsStore.mutedTitleTokens` (comma-separated, default `busy, blocked, focus, hold, ooo`; single tokens are whole-word so “Busy” mutes and “Business review” does not). New calendars are on by default because we store the disabled set, not the enabled set.
+`GoogleCalendarService` is a separate source. **Connect Google…** runs Desktop OAuth with PKCE and a loopback `http://127.0.0.1` redirect (`GoogleOAuthClient`), stores tokens in the Keychain, then lists calendars and events through the Google Calendar API (read-only). Client ID is `GoogleClientConfig` / `GoogleClientID` in Info.plist. Google calendar IDs are stored as `google:` plus the API id so they do not collide with EventKit identifiers. `EventCatalog` merges both into `TimedEvent` values; `EventDedupe` drops a Google copy when the same title starts within 90 seconds of an Apple event, unless only Google has a meeting URL. Google Meet links come from `hangoutLink`; Zoomie does not treat the Calendar HTML page as a join URL.
+
+`EventQualifying` is the pure filter: non-empty title, not all-day, user has not declined (EventKit current-user `.declined`, or Google `attendees[].self` + `responseStatus=declined`), calendar not in `disabledCalendarIDs`, title not matched by `MutedTitle` against `SettingsStore.mutedTitleTokens` (comma-separated, default `busy, blocked, focus, hold, ooo`; single tokens are whole-word so “Busy” mutes and “Business review” does not). New calendars are on by default because we store the disabled set, not the enabled set.
 
 ## Updates
 

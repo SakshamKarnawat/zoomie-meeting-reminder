@@ -1,10 +1,9 @@
 import AppKit
-import EventKit
 import Foundation
 
 @MainActor
 final class EventScheduler {
-    private let calendarService: CalendarService
+    private let catalog: EventCatalog
     private let settings: SettingsStore
     private let banner: BannerController
 
@@ -13,8 +12,8 @@ final class EventScheduler {
     private var deliveredKeys: Set<String> = []
     private var observers: [NSObjectProtocol] = []
 
-    init(calendarService: CalendarService, settings: SettingsStore, banner: BannerController) {
-        self.calendarService = calendarService
+    init(catalog: EventCatalog, settings: SettingsStore, banner: BannerController) {
+        self.catalog = catalog
         self.settings = settings
         self.banner = banner
     }
@@ -58,7 +57,7 @@ final class EventScheduler {
     }
 
     private func upcomingFires(after now: Date) -> [ScheduledFire] {
-        let events = calendarService.upcomingEvents(
+        let events = catalog.timedEvents(
             disabledCalendarIDs: settings.disabledCalendarIDs,
             from: now
         )
@@ -76,23 +75,22 @@ final class EventScheduler {
         }
     }
 
-    private func firesForEvent(_ event: EKEvent, now: Date) -> [ScheduledFire] {
-        let declined = calendarService.userDeclined(event)
-        let calendarID = event.calendar.calendarIdentifier
+    private func firesForEvent(_ event: TimedEvent, now: Date) -> [ScheduledFire] {
         guard EventQualifying.isQualifying(
             title: event.title,
             isAllDay: event.isAllDay,
-            userDeclined: declined,
-            calendarIdentifier: calendarID,
+            userDeclined: event.userDeclined,
+            calendarIdentifier: event.calendarID,
             disabledCalendarIDs: settings.disabledCalendarIDs,
             mutedTitleTokens: settings.mutedTitleTokens
         ) else {
             return []
         }
 
-        guard let title = event.title else { return [] }
-        guard let start = event.startDate, start > now else { return [] }
-        let identifier = event.eventIdentifier ?? "\(calendarID)|\(start.timeIntervalSince1970)|\(title)"
+        guard event.startDate > now else { return [] }
+        let identifier = event.id
+        let title = event.title
+        let start = event.startDate
 
         var result: [ScheduledFire] = []
         let leadMinutes = settings.leadTime.rawValue
@@ -229,7 +227,8 @@ final class EventScheduler {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.calendarService.reload()
+                self?.catalog.apple.reload()
+                self?.catalog.bump()
                 self?.reschedule()
             }
         }
