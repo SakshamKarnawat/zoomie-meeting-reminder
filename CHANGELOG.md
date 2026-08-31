@@ -2,6 +2,12 @@
 
 What changed in each Zoomie release. GitHub Releases use the same notes.
 
+## [1.6.1] - 2026-08-31
+
+### Fixes
+
+- stamp the Google secret into the release plist
+
 ## [1.6.0] - 2026-08-31
 
 ### Features
