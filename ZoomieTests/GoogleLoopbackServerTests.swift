@@ -15,4 +15,10 @@ struct GoogleLoopbackServerTests {
         let url = GoogleLoopbackServer.redirectURL(from: request)
         #expect(url.map(GoogleLoopbackServer.isOAuthCallback) != true)
     }
+
+    @Test func treatsGoogleErrorQueryAsCallback() {
+        let request = "GET /?error=server_error&error_description=boom HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n"
+        let url = GoogleLoopbackServer.redirectURL(from: request)
+        #expect(url.map(GoogleLoopbackServer.isOAuthCallback) == true)
+    }
 }

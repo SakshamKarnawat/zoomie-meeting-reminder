@@ -8,6 +8,7 @@ enum GoogleOAuthError: LocalizedError {
     case tokenExchangeFailed(String)
     case missingRefreshToken
     case httpStatus(Int)
+    case googleDenied(String)
 
     var errorDescription: String? {
         switch self {
@@ -16,7 +17,7 @@ enum GoogleOAuthError: LocalizedError {
         case .cancelled:
             "Google sign-in was cancelled."
         case .missingCode:
-            "Google did not return an authorization code."
+            "Google did not return an authorization code. If the browser showed an error, check the GCP Desktop client, test user, and Calendar API."
         case .stateMismatch:
             "Google sign-in could not be verified. Try again."
         case .tokenExchangeFailed(let message):
@@ -25,6 +26,8 @@ enum GoogleOAuthError: LocalizedError {
             "Google did not return a refresh token. Disconnect and connect again."
         case .httpStatus(let code):
             "Google Calendar returned \(code)."
+        case .googleDenied(let message):
+            message
         }
     }
 }

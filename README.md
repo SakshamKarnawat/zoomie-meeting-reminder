@@ -89,11 +89,11 @@ No paywall, no telemetry. Network is EventKit’s local calendar store, optional
 
 ## Google Calendar (developers)
 
-Zoomie uses a **Desktop** OAuth client and PKCE (loopback `http://127.0.0.1`). There is no client secret in the app. Do not create a Web or iOS client.
+Zoomie uses a **Desktop** OAuth client and PKCE (loopback `http://127.0.0.1`). Do not create a Web or iOS client.
 
 1. In the same GCP project: enable **Google Calendar API**.
-2. OAuth consent screen (External, Testing is fine): add yourself as a test user.
+2. OAuth consent screen (External, Testing is fine): add yourself as a test user. Add the `calendar.readonly` scope if the consent screen asks for scopes.
 3. Credentials → Create OAuth client → application type **Desktop app**. Loopback redirects are automatic — do not add a custom redirect URI.
-4. Paste the client ID into `GoogleClientConfig.bakedInClientID`, or set `INFOPLIST_KEY_GoogleClientID` on the Zoomie target.
+4. Paste the client ID into `GoogleClientConfig.bakedInClientID`. If token exchange fails with `client_secret is missing`, also paste the Desktop client secret into `bakedInClientSecret`.
 
-Connect Google in Settings. Tokens stay in the Keychain. Disconnect revokes them. The client ID is public; treat refresh tokens in Keychain as the secret.
+Connect Google in Settings. Finish in the browser, then return to Zoomie — or **Cancel** if Google shows an error. Tokens stay in the Keychain. Disconnect revokes them. The client ID is public; treat refresh tokens in Keychain as the secret.

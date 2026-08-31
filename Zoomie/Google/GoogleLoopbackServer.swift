@@ -7,9 +7,7 @@ final class GoogleLoopbackServer: @unchecked Sendable {
     private let lock = NSLock()
 
     func start() async throws -> UInt16 {
-        let parameters = NWParameters.tcp
-        parameters.requiredInterfaceType = .loopback
-        let listener = try NWListener(using: parameters, on: 0)
+        let listener = try NWListener(using: .tcp, on: 0)
         self.listener = listener
         listener.newConnectionHandler = { [weak self] connection in
             self?.accept(connection)
@@ -26,6 +24,10 @@ final class GoogleLoopbackServer: @unchecked Sendable {
                 case .failed(let error):
                     gate.resume {
                         continuation.resume(throwing: error)
+                    }
+                case .cancelled:
+                    gate.resume {
+                        continuation.resume(throwing: GoogleOAuthError.cancelled)
                     }
                 default:
                     break
@@ -51,28 +53,49 @@ final class GoogleLoopbackServer: @unchecked Sendable {
 
     private func accept(_ connection: NWConnection) {
         connection.start(queue: .global(qos: .userInitiated))
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] data, _, _, error in
+        receive(on: connection, buffer: Data())
+    }
+
+    private func receive(on connection: NWConnection, buffer: Data) {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] data, _, isComplete, error in
             if let error {
                 connection.cancel()
                 self?.finish(throwing: error)
                 return
             }
-            guard let data, let request = String(data: data, encoding: .utf8) else {
+            var next = buffer
+            if let data {
+                next.append(data)
+            }
+            guard let request = String(data: next, encoding: .utf8) else {
                 connection.cancel()
                 self?.finish(throwing: GoogleOAuthError.missingCode)
                 return
             }
-            let parsed = Self.redirectURL(from: request)
-            guard let parsed, Self.isOAuthCallback(parsed) else {
-                self?.reply(on: connection) {
-                    connection.cancel()
-                }
+            if request.contains("\r\n\r\n") {
+                self?.handle(request, connection: connection)
                 return
             }
-            self?.reply(on: connection) {
+            if isComplete {
                 connection.cancel()
-                self?.finish(returning: parsed)
+                self?.finish(throwing: GoogleOAuthError.missingCode)
+                return
             }
+            self?.receive(on: connection, buffer: next)
+        }
+    }
+
+    private func handle(_ request: String, connection: NWConnection) {
+        let parsed = Self.redirectURL(from: request)
+        guard let parsed, Self.isOAuthCallback(parsed) else {
+            reply(on: connection) {
+                connection.cancel()
+            }
+            return
+        }
+        reply(on: connection) {
+            connection.cancel()
+            self.finish(returning: parsed)
         }
     }
 

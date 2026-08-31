@@ -5,12 +5,36 @@ enum GoogleOAuthClient {
     private static let authURL = URL(string: "https://accounts.google.com/o/oauth2/v2/auth")!
     private static let tokenURL = URL(string: "https://oauth2.googleapis.com/token")!
     private static let revokeURL = URL(string: "https://oauth2.googleapis.com/revoke")!
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var activeServer: GoogleLoopbackServer?
+
+    static func cancel() {
+        lock.lock()
+        let server = activeServer
+        lock.unlock()
+        server?.stop()
+    }
 
     static func signIn() async throws -> GoogleTokens {
         guard GoogleClientConfig.isConfigured else { throw GoogleOAuthError.notConfigured }
 
         let server = GoogleLoopbackServer()
-        let port = try await server.start()
+        setActive(server)
+        defer { setActive(nil) }
+
+        let port: UInt16
+        do {
+            port = try await firstResult {
+                try await server.start()
+            } timeout: {
+                try await Task.sleep(for: .seconds(10))
+                throw GoogleOAuthError.cancelled
+            }
+        } catch {
+            server.stop()
+            throw error
+        }
+
         let redirect = "http://127.0.0.1:\(port)"
         let verifier = GoogleOAuthPKCE.makeVerifier()
         let state = GoogleOAuthPKCE.makeState()
@@ -23,15 +47,11 @@ enum GoogleOAuthClient {
 
         let callback: URL
         do {
-            callback = try await withThrowingTaskGroup(of: URL.self) { group in
-                group.addTask { try await server.waitForRedirect() }
-                group.addTask {
-                    try await Task.sleep(for: .seconds(180))
-                    throw GoogleOAuthError.cancelled
-                }
-                let first = try await group.next()!
-                group.cancelAll()
-                return first
+            callback = try await firstResult {
+                try await server.waitForRedirect()
+            } timeout: {
+                try await Task.sleep(for: .seconds(120))
+                throw GoogleOAuthError.cancelled
             }
         } catch {
             server.stop()
@@ -43,7 +63,10 @@ enum GoogleOAuthClient {
         let values = Dictionary(uniqueKeysWithValues: items.compactMap { item in
             item.value.map { (item.name, $0) }
         })
-        if values["error"] != nil { throw GoogleOAuthError.cancelled }
+        if let error = values["error"] {
+            let detail = values["error_description"] ?? error
+            throw GoogleOAuthError.googleDenied(detail.replacingOccurrences(of: "+", with: " "))
+        }
         guard values["state"] == state else { throw GoogleOAuthError.stateMismatch }
         guard let code = values["code"] else { throw GoogleOAuthError.missingCode }
 
@@ -57,12 +80,15 @@ enum GoogleOAuthClient {
     }
 
     static func refresh(_ tokens: GoogleTokens) async throws -> GoogleTokens {
-        let body = urlEncoded([
+        var fields = [
             "client_id": GoogleClientConfig.clientID,
             "grant_type": "refresh_token",
             "refresh_token": tokens.refreshToken
-        ])
-        let response = try await post(tokenURL, body: body)
+        ]
+        if !GoogleClientConfig.clientSecret.isEmpty {
+            fields["client_secret"] = GoogleClientConfig.clientSecret
+        }
+        let response = try await post(tokenURL, body: urlEncoded(fields))
         var next = try tokensFromResponse(response, fallbackRefresh: tokens.refreshToken)
         next.email = tokens.email ?? next.email
         if next.email == nil {
@@ -79,31 +105,33 @@ enum GoogleOAuthClient {
         _ = try? await URLSession.shared.data(for: request)
     }
 
-    private static func authorizationURL(redirect: String, state: String, challenge: String) -> URL {
-        var components = URLComponents(url: authURL, resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "client_id", value: GoogleClientConfig.clientID),
-            URLQueryItem(name: "redirect_uri", value: redirect),
-            URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "scope", value: GoogleClientConfig.scope),
-            URLQueryItem(name: "access_type", value: "offline"),
-            URLQueryItem(name: "prompt", value: "consent"),
-            URLQueryItem(name: "state", value: state),
-            URLQueryItem(name: "code_challenge", value: challenge),
-            URLQueryItem(name: "code_challenge_method", value: "S256")
+    static func authorizationURL(redirect: String, state: String, challenge: String) -> URL {
+        let fields = [
+            "client_id": GoogleClientConfig.clientID,
+            "redirect_uri": redirect,
+            "response_type": "code",
+            "scope": GoogleClientConfig.scope,
+            "access_type": "offline",
+            "state": state,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256"
         ]
-        return components.url!
+        let query = urlEncodedString(fields)
+        return URL(string: "\(authURL.absoluteString)?\(query)")!
     }
 
     private static func exchange(code: String, redirect: String, verifier: String) async throws -> GoogleTokens {
-        let body = urlEncoded([
+        var fields = [
             "client_id": GoogleClientConfig.clientID,
             "code": code,
             "code_verifier": verifier,
             "grant_type": "authorization_code",
             "redirect_uri": redirect
-        ])
-        let response = try await post(tokenURL, body: body)
+        ]
+        if !GoogleClientConfig.clientSecret.isEmpty {
+            fields["client_secret"] = GoogleClientConfig.clientSecret
+        }
+        let response = try await post(tokenURL, body: urlEncoded(fields))
         return try tokensFromResponse(response, fallbackRefresh: nil)
     }
 
@@ -146,14 +174,36 @@ enum GoogleOAuthClient {
         return try JSONDecoder().decode(GoogleTokenResponse.self, from: data)
     }
 
-    private static let formAllowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+    static let formAllowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
 
     private static func urlEncoded(_ fields: [String: String]) -> Data {
-        let joined = fields.map { key, value in
+        Data(urlEncodedString(fields).utf8)
+    }
+
+    private static func urlEncodedString(_ fields: [String: String]) -> String {
+        fields.map { key, value in
             let encoded = value.addingPercentEncoding(withAllowedCharacters: formAllowed) ?? value
             return "\(key)=\(encoded)"
         }
         .joined(separator: "&")
-        return Data(joined.utf8)
+    }
+
+    private static func setActive(_ server: GoogleLoopbackServer?) {
+        lock.lock()
+        activeServer = server
+        lock.unlock()
+    }
+
+    private static func firstResult<T: Sendable>(
+        _ work: @escaping @Sendable () async throws -> T,
+        timeout: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await work() }
+            group.addTask { try await timeout() }
+            let first = try await group.next()!
+            group.cancelAll()
+            return first
+        }
     }
 }

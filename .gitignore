@@ -5,4 +5,4 @@ build/
 *.xcuserstate
 /Zoomie.zip
 client_secret_*.json
-
+google-service-account.json

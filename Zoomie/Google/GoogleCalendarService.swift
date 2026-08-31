@@ -6,7 +6,7 @@ import SwiftUI
 final class GoogleCalendarService {
     var calendars: [CalendarDescriptor] = []
     var email: String?
-    var isBusy = false
+    var isSigningIn = false
     var errorMessage: String?
     private(set) var snapshotID = 0
     private var tokens: GoogleTokens?
@@ -24,18 +24,28 @@ final class GoogleCalendarService {
             errorMessage = GoogleOAuthError.notConfigured.localizedDescription
             return
         }
-        isBusy = true
+        isSigningIn = true
         errorMessage = nil
-        defer { isBusy = false }
+        defer { isSigningIn = false }
         do {
             let next = try await GoogleOAuthClient.signIn()
             try GoogleTokenStore.save(next)
             tokens = next
             email = next.email
-            try await pull(using: next)
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return
+        }
+        guard let tokens else { return }
+        do {
+            try await pull(using: tokens)
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    func cancelSignIn() {
+        GoogleOAuthClient.cancel()
     }
 
     func signOut() async {
@@ -53,9 +63,7 @@ final class GoogleCalendarService {
 
     func refresh() async {
         guard var tokens else { return }
-        isBusy = true
         errorMessage = nil
-        defer { isBusy = false }
         do {
             if tokens.isExpired {
                 tokens = try await rotate(tokens)
