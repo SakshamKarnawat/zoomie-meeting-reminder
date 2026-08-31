@@ -10,7 +10,7 @@ struct GoogleOAuthClientTests {
             challenge: "def"
         )
         let query = try #require(url.query)
-        #expect(query.contains("redirect_uri=http%3A%2F%2F127.0.0.1%3A9004"))
+        #expect(query.contains("redirect_uri=http%3A//127.0.0.1%3A9004"))
         #expect(query.contains("code_challenge_method=S256"))
         #expect(query.contains("access_type=offline"))
         #expect(!query.contains("prompt="))

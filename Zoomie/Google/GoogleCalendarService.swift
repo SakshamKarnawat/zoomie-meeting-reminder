@@ -7,6 +7,8 @@ final class GoogleCalendarService {
     var calendars: [CalendarDescriptor] = []
     var email: String?
     var isSigningIn = false
+    var authorizationURL: URL?
+    var browsers: [InstalledBrowser] = []
     var errorMessage: String?
     private(set) var snapshotID = 0
     private var tokens: GoogleTokens?
@@ -26,9 +28,16 @@ final class GoogleCalendarService {
         }
         isSigningIn = true
         errorMessage = nil
-        defer { isSigningIn = false }
+        defer {
+            isSigningIn = false
+            authorizationURL = nil
+            browsers = []
+        }
         do {
-            let next = try await GoogleOAuthClient.signIn()
+            let pending = try await GoogleOAuthClient.begin()
+            authorizationURL = pending.authorizationURL
+            browsers = InstalledBrowsers.list()
+            let next = try await pending.waitForTokens()
             try GoogleTokenStore.save(next)
             tokens = next
             email = next.email
@@ -46,6 +55,11 @@ final class GoogleCalendarService {
 
     func cancelSignIn() {
         GoogleOAuthClient.cancel()
+    }
+
+    func openAuthorization(in browser: InstalledBrowser) {
+        guard let authorizationURL else { return }
+        browser.open(authorizationURL)
     }
 
     func signOut() async {

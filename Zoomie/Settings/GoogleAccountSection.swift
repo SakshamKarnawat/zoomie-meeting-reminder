@@ -3,6 +3,7 @@ import SwiftUI
 struct GoogleAccountSection: View {
     var google: GoogleCalendarService
     let afterChange: () -> Void
+    @State private var secretDraft = ""
 
     var body: some View {
         Section {
@@ -14,12 +15,25 @@ struct GoogleAccountSection: View {
                 LabeledContent("Signed in", value: google.email ?? "Google")
                 Button("Disconnect Google", role: .destructive, action: disconnect)
             } else if google.isSigningIn {
-                ProgressView("Waiting for Google in your browser…")
-                Text("Finish the Google window, then come back. Cancel if the browser shows an error.")
+                ProgressView("Waiting for Google…")
+                Text("Open the sign-in link in a browser. After Google finishes, this window updates.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                if google.browsers.isEmpty {
+                    Text("No browsers found.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(google.browsers) { browser in
+                        Button("Open in \(browser.name)") {
+                            google.openAuthorization(in: browser)
+                        }
+                    }
+                }
                 Button("Cancel", action: cancel)
             } else {
+                if !GoogleClientConfig.hasClientSecret {
+                    SecureField("Desktop client secret", text: $secretDraft)
+                }
                 Button("Connect Google…", action: connect)
             }
             if let errorMessage = google.errorMessage {
@@ -36,6 +50,15 @@ struct GoogleAccountSection: View {
 
     private func connect() {
         Task {
+            do {
+                if !secretDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    try GoogleClientSecretStore.save(secretDraft)
+                }
+            } catch {
+                google.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                return
+            }
+            secretDraft = ""
             await google.signIn()
             afterChange()
         }

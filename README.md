@@ -89,11 +89,12 @@ No paywall, no telemetry. Network is EventKit’s local calendar store, optional
 
 ## Google Calendar (developers)
 
-Zoomie uses a **Desktop** OAuth client and PKCE (loopback `http://127.0.0.1`). Do not create a Web or iOS client.
+Zoomie uses a **Desktop** OAuth client and PKCE (loopback `http://127.0.0.1` in the system browser). Do not create a Web or iOS client.
 
 1. In the same GCP project: enable **Google Calendar API**.
-2. OAuth consent screen (External, Testing is fine): add yourself as a test user. Add the `calendar.readonly` scope if the consent screen asks for scopes.
-3. Credentials → Create OAuth client → application type **Desktop app**. Loopback redirects are automatic — do not add a custom redirect URI.
-4. Paste the client ID into `GoogleClientConfig.bakedInClientID`. If token exchange fails with `client_secret is missing`, also paste the Desktop client secret into `bakedInClientSecret`.
+2. OAuth consent screen: External, then **Publish app** (In production). Leave it unverified. Do **not** leave it in Testing — Google’s “app is being tested” Continue button 500s on desktop loopback.
+3. Credentials → Create OAuth client → application type **Desktop app**.
+4. Paste the client ID into `GoogleClientConfig.bakedInClientID`. Do not put the client secret in source.
+5. Put the Desktop client secret in the GitHub repo Action secret `ZOOMIE_GOOGLE_CLIENT_SECRET`. CI stamps it into the release Info.plist. It is not in git.
 
-Connect Google in Settings. Finish in the browser, then return to Zoomie — or **Cancel** if Google shows an error. Tokens stay in the Keychain. Disconnect revokes them. The client ID is public; treat refresh tokens in Keychain as the secret.
+Connect Google in Settings, then pick an installed browser (Safari, Chrome, Firefox, …). After Google finishes, Zoomie picks up the redirect. You may see “Google hasn’t verified this app” → **Advanced** → **Go to Zoomie**. Tokens stay in the Keychain. Disconnect revokes them. The client ID is public. A Desktop client secret in a shipped `.app` is extractable; keeping it out of git is the point. Local Debug/Release builds with an empty plist can paste the secret once in Settings (Keychain).

@@ -70,7 +70,13 @@ jobs:
 
       - name: Build unsigned app
         if: steps.skip.outputs.already != 'true'
+        env:
+          ZOOMIE_GOOGLE_CLIENT_SECRET: ${{ secrets.ZOOMIE_GOOGLE_CLIENT_SECRET }}
         run: |
+          if [ -z "${ZOOMIE_GOOGLE_CLIENT_SECRET}" ]; then
+            echo "Set repo secret ZOOMIE_GOOGLE_CLIENT_SECRET (GCP Desktop client secret)." >&2
+            exit 1
+          fi
           xcodebuild -scheme Zoomie -project Zoomie.xcodeproj \
             -configuration Release \
             -destination 'platform=macOS,arch=arm64' \
@@ -78,6 +84,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             MARKETING_VERSION="${{ steps.version.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build }}" \
+            INFOPLIST_KEY_GoogleClientSecret="${ZOOMIE_GOOGLE_CLIENT_SECRET}" \
             build
 
       - name: Zip app

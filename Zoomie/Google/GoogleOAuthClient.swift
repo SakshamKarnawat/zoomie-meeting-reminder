@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 
 enum GoogleOAuthClient {
@@ -11,16 +10,16 @@ enum GoogleOAuthClient {
     static func cancel() {
         lock.lock()
         let server = activeServer
+        activeServer = nil
         lock.unlock()
         server?.stop()
     }
 
-    static func signIn() async throws -> GoogleTokens {
+    static func begin() async throws -> GoogleOAuthPending {
         guard GoogleClientConfig.isConfigured else { throw GoogleOAuthError.notConfigured }
 
         let server = GoogleLoopbackServer()
         setActive(server)
-        defer { setActive(nil) }
 
         let port: UInt16
         do {
@@ -32,6 +31,7 @@ enum GoogleOAuthClient {
             }
         } catch {
             server.stop()
+            setActive(nil)
             throw error
         }
 
@@ -43,22 +43,22 @@ enum GoogleOAuthClient {
             state: state,
             challenge: GoogleOAuthPKCE.challenge(for: verifier)
         )
-        NSWorkspace.shared.open(auth)
+        return GoogleOAuthPending(
+            authorizationURL: auth,
+            server: server,
+            redirect: redirect,
+            verifier: verifier,
+            state: state
+        )
+    }
 
-        let callback: URL
-        do {
-            callback = try await firstResult {
-                try await server.waitForRedirect()
-            } timeout: {
-                try await Task.sleep(for: .seconds(120))
-                throw GoogleOAuthError.cancelled
-            }
-        } catch {
-            server.stop()
-            throw error
-        }
-        server.stop()
-
+    static func tokens(
+        from callback: URL,
+        redirect: String,
+        verifier: String,
+        state: String
+    ) async throws -> GoogleTokens {
+        setActive(nil)
         let items = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems ?? []
         let values = Dictionary(uniqueKeysWithValues: items.compactMap { item in
             item.value.map { (item.name, $0) }
@@ -140,7 +140,13 @@ enum GoogleOAuthClient {
         fallbackRefresh: String?
     ) throws -> GoogleTokens {
         if let error = response.error {
-            throw GoogleOAuthError.tokenExchangeFailed(response.errorDescription ?? error)
+            let detail = response.errorDescription ?? error
+            if detail.localizedCaseInsensitiveContains("client_secret") {
+                throw GoogleOAuthError.tokenExchangeFailed(
+                    "This build has no Desktop client secret. GitHub releases stamp it from the ZOOMIE_GOOGLE_CLIENT_SECRET Actions secret. For a local build, paste it in Settings, then Connect again."
+                )
+            }
+            throw GoogleOAuthError.tokenExchangeFailed(detail)
         }
         guard let accessToken = response.accessToken, !accessToken.isEmpty else {
             throw GoogleOAuthError.tokenExchangeFailed("Google did not return an access token.")
@@ -174,7 +180,8 @@ enum GoogleOAuthClient {
         return try JSONDecoder().decode(GoogleTokenResponse.self, from: data)
     }
 
-    static let formAllowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+    /// Google’s samples encode `:` but leave `/` (`http%3A//127.0.0.1%3A9004`).
+    static let formAllowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~/"))
 
     private static func urlEncoded(_ fields: [String: String]) -> Data {
         Data(urlEncodedString(fields).utf8)
@@ -194,7 +201,7 @@ enum GoogleOAuthClient {
         lock.unlock()
     }
 
-    private static func firstResult<T: Sendable>(
+    static func firstResult<T: Sendable>(
         _ work: @escaping @Sendable () async throws -> T,
         timeout: @escaping @Sendable () async throws -> T
     ) async throws -> T {
