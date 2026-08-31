@@ -4,3 +4,5 @@ DerivedData/
 build/
 *.xcuserstate
 /Zoomie.zip
+client_secret_*.json
+
